@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>preprocessing.10_preprocess_modflow &mdash; GEB 0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="copyright" title="Copyright" href="../../copyright.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> GEB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../preprocessing/preprocessing.html">Preprocessing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../running.html">Running the model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../HRUs.html">Farm-level HRUs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Agents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/__init__.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/farmers.html">Farmers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/ngo.html">NGO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/government.html">Government</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cwatm_model.html">CWatM Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../report.html">Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../artists.html">Artists</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../authors_page.html">Authors</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GEB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>preprocessing.10_preprocess_modflow</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for preprocessing.10_preprocess_modflow</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">geopandas</span> <span class="k">as</span> <span class="nn">gpd</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">rasterio</span>
+<span class="kn">import</span> <span class="nn">rasterio.features</span>
+<span class="kn">from</span> <span class="nn">rasterio</span> <span class="kn">import</span> <span class="n">Affine</span>
+<span class="kn">from</span> <span class="nn">rasterio.warp</span> <span class="kn">import</span> <span class="n">reproject</span><span class="p">,</span> <span class="n">Resampling</span>
+<span class="kn">from</span> <span class="nn">pyproj</span> <span class="kn">import</span> <span class="n">Transformer</span>
+<span class="kn">from</span> <span class="nn">rasterio.merge</span> <span class="kn">import</span> <span class="n">merge</span>
+
+<span class="kn">from</span> <span class="nn">config</span> <span class="kn">import</span> <span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="n">INPUT</span>
+
+<div class="viewcode-block" id="ModflowPreprocess"><a class="viewcode-back" href="../../preprocessing/10_preprocess_modflow.html#preprocessing.10_preprocess_modflow.ModflowPreprocess">[docs]</a><span class="k">class</span> <span class="nc">ModflowPreprocess</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class is used to do all modflow preprocessing. CWatM works in a lon-lat grid, while MODFLOW works in a cartesian grid. Therefore a custom MODFLOW grid is created that encompasses the entirety of the CWatM mask. In addition, a mapping is created that maps the area of a given cell in the CWatM grid to a given MODFLOW cell. All required data for MODFLOW is also projected to the newly created MODFLOW grid.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        modflow_path: path where processed data will be saved.</span>
+<span class="sd">        resolution: resolution in meters of MODFLOW data.</span>
+<span class="sd">        cwatm_basin_mask_fn: filepath of cwatm basin mask</span>
+<span class="sd">        modflow_epsg: MODFLOW EPSG</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modflow_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">resolution</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cwatm_basin_mask_fn</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">modflow_epsg</span><span class="p">:</span><span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">modflow_path</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">resolution</span><span class="si">}</span><span class="s1">m&#39;</span><span class="p">)</span>   <span class="c1"># Folder where input maps will be saved</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modflow_epsg</span> <span class="o">=</span> <span class="n">modflow_epsg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modflow_resolution</span> <span class="o">=</span> <span class="n">resolution</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">cwatm_basin_mask_fn</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_basin_mask</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Matrix containing the studied CWATM variable</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_epsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;crs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_epsg</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">modflow_affine</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol_ModFlow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow_ModFlow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_modflow_transform_and_size</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ModflowPreprocess.get_modflow_transform_and_size"><a class="viewcode-back" href="../../preprocessing/10_preprocess_modflow.html#preprocessing.10_preprocess_modflow.ModflowPreprocess.get_modflow_transform_and_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_modflow_transform_and_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Affine</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate modflow geotransformation and size of grid.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            modflow_affine: affine transformation for new MODFLOW grid.</span>
+<span class="sd">            ncols: number of columns in the MODFLOW grid.</span>
+<span class="sd">            nrows: number of rows in the MODFLOW grid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cwatm_lon</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;transform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;transform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">a</span> <span class="o">*</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;width&#39;</span><span class="p">])]</span>
+        <span class="n">cwatm_lat</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;transform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">f</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;transform&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">e</span> <span class="o">*</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;height&#39;</span><span class="p">])]</span>
+        
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cwatm_lon</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">cwatm_lon</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">cwatm_lon</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cwatm_lat</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">cwatm_lat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">cwatm_lat</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+        <span class="p">)</span>
+        
+        <span class="n">transformer</span> <span class="o">=</span> <span class="n">Transformer</span><span class="o">.</span><span class="n">from_crs</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;epsg:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cwatm_epsg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;epsg:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_epsg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">a_utm</span><span class="p">,</span> <span class="n">b_utm</span> <span class="o">=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+        <span class="n">xmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">a_utm</span><span class="p">)</span>
+        <span class="n">xmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">a_utm</span><span class="p">)</span>
+        <span class="n">ncols</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">xmax</span><span class="o">-</span><span class="n">xmin</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_resolution</span><span class="p">)</span>
+        <span class="n">xmax</span> <span class="o">=</span> <span class="n">xmin</span> <span class="o">+</span> <span class="n">ncols</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_resolution</span>
+        <span class="n">ymin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">b_utm</span><span class="p">)</span>
+        <span class="n">ymax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">b_utm</span><span class="p">)</span>
+        <span class="n">nrows</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">ymax</span><span class="o">-</span><span class="n">ymin</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_resolution</span><span class="p">)</span>
+        <span class="n">ymax</span> <span class="o">=</span> <span class="n">ymin</span> <span class="o">+</span> <span class="n">nrows</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_resolution</span>
+
+        <span class="n">gt_modlfow</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">xmin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_resolution</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ymax</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_resolution</span>
+        <span class="p">)</span>
+
+        <span class="n">modflow_affine</span> <span class="o">=</span> <span class="n">Affine</span><span class="o">.</span><span class="n">from_gdal</span><span class="p">(</span><span class="o">*</span><span class="n">gt_modlfow</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">modflow_affine</span><span class="p">,</span> <span class="n">ncols</span><span class="p">,</span> <span class="n">nrows</span></div>
+
+<div class="viewcode-block" id="ModflowPreprocess.create_raster_shapefile"><a class="viewcode-back" href="../../preprocessing/10_preprocess_modflow.html#preprocessing.10_preprocess_modflow.ModflowPreprocess.create_raster_shapefile">[docs]</a>    <span class="k">def</span> <span class="nf">create_raster_shapefile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="p">:</span> <span class="n">Affine</span><span class="p">,</span> <span class="n">xsize</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ysize</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">epsg</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        First creates a raster for the given transform and size, where the top-left cell is 0, and counting up, rows first. Then the raster is transformed into a GeoDataFrame (shapefile), where the numbers of the cells are used as IDs.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            transform: geotransformation of the raster</span>
+<span class="sd">            xsize: number of columns</span>
+<span class="sd">            ysize: number of rows</span>
+<span class="sd">            epsg: epsg of the raster</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            gdf: GeoDataFrame with raster cells as geometries, each having a unique ID.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">ysize</span> <span class="o">*</span> <span class="n">xsize</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">ysize</span><span class="p">,</span> <span class="n">xsize</span><span class="p">))</span>
+        <span class="n">shapes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rasterio</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">shapes</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">))</span>
+        <span class="n">geoms</span> <span class="o">=</span> <span class="p">[{</span><span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="n">geom</span><span class="p">,</span> <span class="s1">&#39;properties&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;cell_id&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)}}</span> <span class="k">for</span> <span class="n">geom</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">]</span>
+        <span class="n">gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="o">.</span><span class="n">from_features</span><span class="p">(</span><span class="n">geoms</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">epsg</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;cell_id&#39;</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="c1"># check if cell_ids are sorted</span>
+        <span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;cell_id&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">xsize</span><span class="p">),</span> <span class="n">ysize</span><span class="p">)</span>
+        <span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">ysize</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">xsize</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">gdf</span></div>
+
+<div class="viewcode-block" id="ModflowPreprocess.create_indices"><a class="viewcode-back" href="../../preprocessing/10_preprocess_modflow.html#preprocessing.10_preprocess_modflow.ModflowPreprocess.create_indices">[docs]</a>    <span class="k">def</span> <span class="nf">create_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a mapping of cells between MODFLOW and CWatM, and saves them to npy-files. The mapping contains the x and y index of a CWatM and MODFLOW cell and the area size (m\ :sup:`2`) of their overlap. Cell combinations that are not in the indices do not overlap.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Create CWatM shapefile</span>
+        <span class="n">cwatm_gdf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_raster_shapefile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;transform&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;width&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;height&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_epsg</span><span class="p">)</span>
+        <span class="n">cwatm_gdf</span> <span class="o">=</span> <span class="n">cwatm_gdf</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">epsg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_epsg</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;created CWatM gdf&#39;</span><span class="p">)</span>
+        <span class="c1"># Create MODFLOW shapefile</span>
+        <span class="n">modflow_gdf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_raster_shapefile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_affine</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol_ModFlow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrow_ModFlow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_epsg</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;created modflow gdf&#39;</span><span class="p">)</span>
+
+        <span class="n">cwatm_gdf</span><span class="p">[</span><span class="s1">&#39;cwatm_geometry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cwatm_gdf</span><span class="o">.</span><span class="n">geometry</span>  <span class="c1"># save geometry for after join</span>
+        <span class="c1"># intersect CWatM and MODFLOW shapefiles</span>
+        <span class="n">intersect</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">sjoin</span><span class="p">(</span><span class="n">modflow_gdf</span><span class="p">,</span> <span class="n">cwatm_gdf</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="s1">&#39;intersects&#39;</span><span class="p">,</span> <span class="n">lsuffix</span><span class="o">=</span><span class="s1">&#39;modflow&#39;</span><span class="p">,</span> <span class="n">rsuffix</span><span class="o">=</span><span class="s1">&#39;cwatm&#39;</span><span class="p">)</span>
+
+        <span class="c1"># calculate size of intersection</span>
+        <span class="n">intersect</span><span class="p">[</span><span class="s1">&#39;area&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">intersect</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">cwatm_geometry</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span><span class="o">.</span><span class="n">area</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># and finally export</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modflow_y</span> <span class="o">=</span> <span class="n">intersect</span><span class="p">[</span><span class="s1">&#39;y_modflow&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>  <span class="c1"># ModFlow column</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modflow_x</span> <span class="o">=</span> <span class="n">intersect</span><span class="p">[</span><span class="s1">&#39;x_modflow&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>  <span class="c1"># ModFlow row</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_y</span> <span class="o">=</span> <span class="n">intersect</span><span class="p">[</span><span class="s1">&#39;y_cwatm&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>  <span class="c1"># CWatM row</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_x</span> <span class="o">=</span> <span class="n">intersect</span><span class="p">[</span><span class="s1">&#39;x_cwatm&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>  <span class="c1"># CWatM col</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">area</span> <span class="o">=</span> <span class="n">intersect</span><span class="p">[</span><span class="s1">&#39;area&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>  <span class="c1"># Area shared by each CWatM and ModFlow cell [m2]</span>
+
+        <span class="n">indices_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span> <span class="s1">&#39;indices&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">indices_folder</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">indices_folder</span><span class="p">)</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">indices_folder</span><span class="p">,</span> <span class="s1">&#39;modflow_x.npy&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_x</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">indices_folder</span><span class="p">,</span> <span class="s1">&#39;modflow_y.npy&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_y</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">indices_folder</span><span class="p">,</span> <span class="s1">&#39;cwatm_x.npy&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_x</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">indices_folder</span><span class="p">,</span> <span class="s1">&#39;cwatm_y.npy&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_y</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">indices_folder</span><span class="p">,</span> <span class="s1">&#39;area.npy&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">area</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModflowPreprocess.create_modflow_basin"><a class="viewcode-back" href="../../preprocessing/10_preprocess_modflow.html#preprocessing.10_preprocess_modflow.ModflowPreprocess.create_modflow_basin">[docs]</a>    <span class="k">def</span> <span class="nf">create_modflow_basin</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a mask for the MODFLOW basin. All cells that have any area overlapping with any CWatM cell are considered to be part of the MODFLOW basin.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Creating 1D arrays containing ModFlow and CWatM indices anf Interesected area [m2]</span>
+        <span class="n">ModFlow_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_y</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol_ModFlow</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_x</span><span class="p">)</span>
+        <span class="n">CWatM_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cwatm_y</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_profile</span><span class="p">[</span><span class="s1">&#39;width&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwatm_x</span><span class="p">)</span>  <span class="c1"># associated CWatM cell index</span>
+
+        <span class="n">ModFlowcellarea</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_resolution</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">modflow_resolution</span>
+        <span class="c1"># Opening the file containing basin cells flag in the rectangular CWATM area (Mask)</span>
+
+        <span class="n">tempmask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cwatm_basin_mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">))</span>
+        <span class="c1"># Looking at if the ModFlow cell is mainly out of the basin</span>
+        <span class="n">ratio_ModFlowcellarea</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">ModFlow_index</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">tempmask</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="n">CWatM_index</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">area</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow_ModFlow</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol_ModFlow</span><span class="p">)</span> <span class="o">/</span> <span class="n">ModFlowcellarea</span>
+        <span class="n">basin_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow_ModFlow</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol_ModFlow</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">basin_mask</span><span class="p">[</span><span class="n">ratio_ModFlowcellarea</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">basin_mask</span> <span class="o">=</span> <span class="n">basin_mask</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow_ModFlow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol_ModFlow</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span> <span class="s1">&#39;modflow_mask.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;GTiff&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ncol_ModFlow</span><span class="p">,</span>
+                <span class="n">height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow_ModFlow</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">nodata</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_affine</span><span class="p">,</span>
+                <span class="n">epsg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_epsg</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+            <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">basin_mask</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">basin_mask</span> <span class="o">=</span> <span class="n">basin_mask</span>
+        <span class="k">return</span> <span class="n">basin_mask</span></div>
+
+<div class="viewcode-block" id="ModflowPreprocess.project_input_map"><a class="viewcode-back" href="../../preprocessing/10_preprocess_modflow.html#preprocessing.10_preprocess_modflow.ModflowPreprocess.project_input_map">[docs]</a>    <span class="k">def</span> <span class="nf">project_input_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_map_fp</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_map_fp</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Projects input map to output map at resolution of the MODFLOW grid. Average resampling is used.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input_map_fp: filepath of the input map</span>
+<span class="sd">            output_map_fp: filepath of the output map</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_map_fp</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+            <span class="n">src_transform</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">transform</span>
+            <span class="n">src_crs</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">crs</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">source_nodata</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;nodata&#39;</span><span class="p">]</span>
+
+        <span class="n">destination</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow_ModFlow</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncol_ModFlow</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="n">reproject</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">src_transform</span><span class="o">=</span><span class="n">src_transform</span><span class="p">,</span> <span class="n">src_crs</span><span class="o">=</span><span class="n">src_crs</span><span class="p">,</span> <span class="n">dst_transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_affine</span><span class="p">,</span>
+                    <span class="n">dst_crs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_epsg</span><span class="p">,</span> <span class="n">src_nodata</span><span class="o">=</span><span class="n">source_nodata</span><span class="p">,</span> <span class="n">resampling</span><span class="o">=</span><span class="n">Resampling</span><span class="o">.</span><span class="n">average</span><span class="p">)</span>
+        
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span> <span class="n">output_map_fp</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;GTiff&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ncol_ModFlow</span><span class="p">,</span>
+                            <span class="n">height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow_ModFlow</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">destination</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">nodata</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_affine</span><span class="p">,</span>
+                            <span class="n">crs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modflow_epsg</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+            <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">destination</span><span class="p">,</span> <span class="n">indexes</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">destination</span></div></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">MODFLOW_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;groundwater&#39;</span><span class="p">,</span> <span class="s1">&#39;modflow&#39;</span><span class="p">)</span>
+    <span class="n">MODFLOW_RESOLUTION</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># ModFlow model&#39;s resolution [m]</span>
+    <span class="n">cwatm_basin_mask_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="s2">&quot;mask.tif&quot;</span><span class="p">)</span>  <span class="c1"># Mask of the CWATM model</span>
+    <span class="n">MODFLOW_EPSG</span> <span class="o">=</span> <span class="mi">32643</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">ModflowPreprocess</span><span class="p">(</span><span class="n">MODFLOW_PATH</span><span class="p">,</span> <span class="n">MODFLOW_RESOLUTION</span><span class="p">,</span> <span class="n">cwatm_basin_mask_fn</span><span class="p">,</span> <span class="n">MODFLOW_EPSG</span><span class="p">)</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">create_indices</span><span class="p">()</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">create_modflow_basin</span><span class="p">()</span>
+
+    <span class="n">merit_hydro_03sec_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="s1">&#39;merit_hydro_03sec&#39;</span><span class="p">)</span>
+    <span class="n">elv_maps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">merit_hydro_03sec_folder</span><span class="p">):</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">merit_hydro_03sec_folder</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">fp</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;_elv&#39;</span><span class="p">):</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+            <span class="n">profile</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
+            <span class="n">elv_maps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fp</span><span class="p">))</span>
+    
+    <span class="n">DEM</span><span class="p">,</span> <span class="n">transform</span> <span class="o">=</span> <span class="n">merge</span><span class="p">(</span><span class="n">elv_maps</span><span class="p">)</span>
+    <span class="n">DEM</span> <span class="o">=</span> <span class="n">DEM</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">profile</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+        <span class="s1">&#39;transform&#39;</span><span class="p">:</span> <span class="n">transform</span><span class="p">,</span>
+        <span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="n">DEM</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="n">DEM</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="p">})</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span> <span class="s1">&#39;elevation.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+        <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">DEM</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">m</span><span class="o">.</span><span class="n">project_input_map</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span> <span class="s1">&#39;elevation.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;elevation_modflow.tif&#39;</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; <a href="../../copyright.html">Copyright</a> 2022, IIASA and VU-IVM.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

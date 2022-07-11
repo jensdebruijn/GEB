@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cwatm_model &mdash; GEB 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> GEB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../preprocessing/preprocessing.html">Preprocessing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../running.html">Running the model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../HRUs.html">Farm-level HRUs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Agents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../agents/__init__.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/farmers.html">Farmers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/ngo.html">NGO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/government.html">Government</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cwatm_model.html">CWatM Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../report.html">Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../artists.html">Artists</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../authors_page.html">Authors</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GEB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Module code</a> &raquo;</li>
+      <li>cwatm_model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cwatm_model</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>  
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">cwatm.cwatm_model</span> <span class="kn">import</span> <span class="n">CWATModel</span>
+<span class="kn">from</span> <span class="nn">cwatm.management_modules.dynamicModel</span> <span class="kn">import</span> <span class="n">ModelFrame</span>
+<span class="kn">from</span> <span class="nn">cwatm.management_modules.configuration</span> <span class="kn">import</span> <span class="n">parse_configuration</span><span class="p">,</span> <span class="n">read_metanetcdf</span>
+<span class="kn">from</span> <span class="nn">cwatm.management_modules.globals</span> <span class="kn">import</span> <span class="n">dateVar</span><span class="p">,</span> <span class="n">settingsfile</span><span class="p">,</span> <span class="n">binding</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">outDir</span>
+<span class="kn">from</span> <span class="nn">cwatm.management_modules.data_handling</span> <span class="kn">import</span> <span class="n">cbinding</span>
+<span class="kn">from</span> <span class="nn">cwatm.management_modules.timestep</span> <span class="kn">import</span> <span class="n">checkifDate</span>
+<span class="kn">from</span> <span class="nn">cwatm.run_cwatm</span> <span class="kn">import</span> <span class="n">headerinfo</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+
+<div class="viewcode-block" id="CWatM_Model"><a class="viewcode-back" href="../cwatm_model.html#cwatm_model.CWatM_Model">[docs]</a><span class="k">class</span> <span class="nc">CWatM_Model</span><span class="p">(</span><span class="n">CWATModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class is used to initalize the CWatM model from GEB. Several static configuration files are read first, then several dynamic parameters are set based on the configuration of GEB. Then, the model frame is created that can then later be used to iteratate.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        start_date: Start date of the model.</span>
+<span class="sd">        n_steps: Number of steps that the model will run for.</span>
+<span class="sd">        settings: Filepath of the CWatM settingsfile. For full configuration options please refer to the `CWatM documentation &lt;https://cwatm.iiasa.ac.at/&gt;`.</span>
+<span class="sd">        use_gpu: Whether the model can use a GPU.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_date</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_water_table_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;general&#39;</span><span class="p">][</span><span class="s1">&#39;init_water_table&#39;</span><span class="p">])</span>
+
+        <span class="n">settingsfile</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
+        <span class="n">parse_configuration</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
+
+        <span class="n">subfolder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">scenario</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">switch_crops</span><span class="p">:</span>
+            <span class="n">subfolder</span> <span class="o">+=</span> <span class="s1">&#39;_switch_crops&#39;</span>
+
+        <span class="n">outDir</span><span class="p">[</span><span class="s1">&#39;OUTPUT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;general&#39;</span><span class="p">][</span><span class="s1">&#39;report_folder&#39;</span><span class="p">],</span> <span class="n">subfolder</span><span class="p">)</span>
+
+        <span class="c1"># calibration</span>
+        <span class="k">for</span> <span class="n">parameter</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;parameters&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">binding</span><span class="p">[</span><span class="n">parameter</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">scenario</span> <span class="o">==</span> <span class="s1">&#39;spinup&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_initial</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_initial</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;general&#39;</span><span class="p">][</span><span class="s1">&#39;export_inital_on_spinup&#39;</span><span class="p">]</span> 
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_initial</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_initial</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="c1"># read_metanetcdf(cbinding(&#39;metaNetcdfFile&#39;), &#39;metaNetcdfFile&#39;)</span>
+        <span class="n">binding</span><span class="p">[</span><span class="s1">&#39;StepStart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">start_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1">/%m/%Y&#39;</span><span class="p">)</span>
+        <span class="n">binding</span><span class="p">[</span><span class="s1">&#39;SpinUp&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span>
+        <span class="n">binding</span><span class="p">[</span><span class="s1">&#39;StepEnd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_steps</span><span class="p">)</span>
+        <span class="n">checkifDate</span><span class="p">(</span><span class="s1">&#39;StepStart&#39;</span><span class="p">,</span> <span class="s1">&#39;StepEnd&#39;</span><span class="p">,</span> <span class="s1">&#39;SpinUp&#39;</span><span class="p">,</span> <span class="n">cbinding</span><span class="p">(</span><span class="s1">&#39;PrecipitationMaps&#39;</span><span class="p">))</span>
+        <span class="n">headerinfo</span><span class="p">()</span>
+
+        <span class="n">CWATModel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stCWATM</span> <span class="o">=</span> <span class="n">ModelFrame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">firstTimestep</span><span class="o">=</span><span class="n">dateVar</span><span class="p">[</span><span class="s2">&quot;intStart&quot;</span><span class="p">],</span> <span class="n">lastTimeStep</span><span class="o">=</span><span class="n">dateVar</span><span class="p">[</span><span class="s2">&quot;intEnd&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stCWATM</span><span class="o">.</span><span class="n">initialize_run</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CWatM_Model.step"><a class="viewcode-back" href="../cwatm_model.html#cwatm_model.CWatM_Model.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Performs n number of (daily) steps in CWatM.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            n: Number of timesteps to perform.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stCWATM</span><span class="o">.</span><span class="n">step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="CWatM_Model.export_water_table"><a class="viewcode-back" href="../cwatm_model.html#cwatm_model.CWatM_Model.export_water_table">[docs]</a>    <span class="k">def</span> <span class="nf">export_water_table</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Function to save required water table output to file.&quot;&quot;&quot;</span>
+        <span class="n">dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">init_water_table_file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dirname</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">init_water_table_file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">groundwater_modflow_module</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">groundwater_modflow_module</span><span class="o">.</span><span class="n">modflow</span><span class="o">.</span><span class="n">head</span><span class="p">))</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; <a href="../copyright.html">Copyright</a> 2022, IIASA and VU-IVM.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

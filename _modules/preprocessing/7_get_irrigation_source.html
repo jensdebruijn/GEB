@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>preprocessing.7_get_irrigation_source &mdash; GEB 0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="copyright" title="Copyright" href="../../copyright.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> GEB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../preprocessing/preprocessing.html">Preprocessing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../running.html">Running the model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../HRUs.html">Farm-level HRUs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Agents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/__init__.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/farmers.html">Farmers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/ngo.html">NGO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/government.html">Government</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cwatm_model.html">CWatM Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../report.html">Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../artists.html">Artists</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../authors_page.html">Authors</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GEB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>preprocessing.7_get_irrigation_source</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for preprocessing.7_get_irrigation_source</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">geopandas</span> <span class="k">as</span> <span class="nn">gpd</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">rasterio.features</span> <span class="kn">import</span> <span class="n">rasterize</span>
+<span class="kn">import</span> <span class="nn">shapely</span>
+<span class="kn">import</span> <span class="nn">rasterio</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">selenium</span> <span class="kn">import</span> <span class="n">webdriver</span>
+<span class="kn">from</span> <span class="nn">selenium.common.exceptions</span> <span class="kn">import</span> <span class="n">UnexpectedAlertPresentException</span><span class="p">,</span> <span class="n">NoSuchElementException</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.chrome.options</span> <span class="kn">import</span> <span class="n">Options</span>
+<span class="kn">import</span> <span class="nn">chromedriver_autoinstaller</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">config</span> <span class="kn">import</span> <span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="n">INPUT</span>
+
+
+<span class="n">STATE_TRANSLATION</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;A &amp; N Islands&#39;</span><span class="p">:</span> <span class="s1">&#39;Andaman and Nicobar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Jammu &amp; Kashmir&#39;</span><span class="p">:</span> <span class="s1">&#39;Jammu and Kashmir&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Chattisgarh&#39;</span><span class="p">:</span> <span class="s1">&#39;Chhattisgarh&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;D &amp; N Haveli&#39;</span><span class="p">:</span> <span class="s1">&#39;Dadra and Nagar Haveli&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Daman &amp; Diu&#39;</span> <span class="p">:</span> <span class="s1">&#39;Daman and Diu&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">DISTRICT_TRANSLATION</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Nicobar&#39;</span><span class="p">:</span> <span class="s1">&#39;Nicobar Islands&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;North &amp; Middle Andamans&#39;</span><span class="p">:</span> <span class="s1">&#39;North and Middle Andaman&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Ananthapur&#39;</span><span class="p">:</span> <span class="s1">&#39;Anantapur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kadapa&#39;</span><span class="p">:</span> <span class="s1">&#39;Y.S.R.&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Mahabubnagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Mahbubnagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Rangareddy&#39;</span><span class="p">:</span> <span class="s1">&#39;Ranga Reddy&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Ahmedabad&#39;</span><span class="p">:</span> <span class="s1">&#39;Ahmadabad&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Panchmahal&#39;</span><span class="p">:</span> <span class="s1">&#39;Panch Mahals&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Sabarkantha&#39;</span><span class="p">:</span> <span class="s1">&#39;Sabar Kantha&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Banaskantha&#39;</span><span class="p">:</span> <span class="s1">&#39;Banas Kantha&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Dangs&#39;</span><span class="p">:</span> <span class="s1">&#39;The Dangs&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kurushetra&#39;</span><span class="p">:</span> <span class="s1">&#39;Kurukshetra&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Mohindargarh&#39;</span><span class="p">:</span> <span class="s1">&#39;Mahendragarh&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Hissar&#39;</span><span class="p">:</span> <span class="s1">&#39;Hisar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Lahaul &amp; Spiti&#39;</span><span class="p">:</span> <span class="s1">&#39;Lahul &amp; Spiti&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Bilaspur&#39;</span><span class="p">:</span> <span class="s1">&#39;Bilaspur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Leh&#39;</span><span class="p">:</span> <span class="s1">&#39;Leh (Ladakh)&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Bandipora&#39;</span><span class="p">:</span> <span class="s1">&#39;Bandipore&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Shopian&#39;</span><span class="p">:</span> <span class="s1">&#39;Shupiyan&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Budgam&#39;</span><span class="p">:</span> <span class="s1">&#39;Badgam&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Chaibasa(West Singbhum)&#39;</span><span class="p">:</span> <span class="s1">&#39;Pashchimi Singhbhum&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Koderma&#39;</span><span class="p">:</span> <span class="s1">&#39;Kodarma&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Sahebganj&#39;</span><span class="p">:</span> <span class="s1">&#39;Sahibganj&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Saraikela-Kharsawa&#39;</span><span class="p">:</span> <span class="s1">&#39;Saraikela-kharsawan&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Daltanganj(Palamu)&#39;</span><span class="p">:</span> <span class="s1">&#39;Palamu&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;East Singhbhum(Purba Sing&#39;</span><span class="p">:</span> <span class="s1">&#39;Purbi Singhbhum&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Garwah&#39;</span><span class="p">:</span> <span class="s1">&#39;Garhwa&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Bagalkote&#39;</span><span class="p">:</span> <span class="s1">&#39;Bagalkot&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Bangalore Urban&#39;</span><span class="p">:</span> <span class="s1">&#39;Bangalore&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Ramnagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Ramanagara&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Chamarajanagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Chamrajnagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Chikballapur&#39;</span><span class="p">:</span> <span class="s1">&#39;Chikballapura&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Amini&#39;</span><span class="p">:</span> <span class="s1">&#39;Lakshadweep&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Chindwara&#39;</span><span class="p">:</span> <span class="s1">&#39;Chhindwara&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Khandwa&#39;</span><span class="p">:</span> <span class="s1">&#39;East Nimar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Khargone&#39;</span><span class="p">:</span> <span class="s1">&#39;West Nimar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Narsinghpur&#39;</span><span class="p">:</span> <span class="s1">&#39;Narsimhapur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Neemach&#39;</span><span class="p">:</span> <span class="s1">&#39;Neemuch&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Sheopurkalan&#39;</span><span class="p">:</span> <span class="s1">&#39;Sheopur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Koloriang&#39;</span><span class="p">:</span> <span class="s1">&#39;Kurung Kumey&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Ahamad Nagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Ahmadnagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Gadchiroli&#39;</span><span class="p">:</span> <span class="s1">&#39;Garhchiroli&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kholapur&#39;</span><span class="p">:</span> <span class="s1">&#39;Kolhapur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Rathnagiri&#39;</span><span class="p">:</span> <span class="s1">&#39;Ratnagiri&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Raygad&#39;</span><span class="p">:</span> <span class="s1">&#39;Raigarh&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Shindhudurga&#39;</span><span class="p">:</span> <span class="s1">&#39;Sindhudurg&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Usmanabad&#39;</span><span class="p">:</span> <span class="s1">&#39;Osmanabad&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Vashim&#39;</span><span class="p">:</span> <span class="s1">&#39;Washim&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Yeotmal&#39;</span><span class="p">:</span> <span class="s1">&#39;Yavatmal&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Auragabad&#39;</span><span class="p">:</span> <span class="s1">&#39;Aurangabad&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Beed&#39;</span><span class="p">:</span> <span class="s1">&#39;Bid&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Buldhana&#39;</span><span class="p">:</span> <span class="s1">&#39;Buldana&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Lawngtlai&#39;</span><span class="p">:</span> <span class="s1">&#39;Lawangtlai&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Angul&#39;</span><span class="p">:</span> <span class="s1">&#39;Anugul&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Jagatsinghpur&#39;</span><span class="p">:</span> <span class="s1">&#39;Jagatsinghapur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Jajpur&#39;</span><span class="p">:</span> <span class="s1">&#39;Jajapur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Keonjhar&#39;</span><span class="p">:</span> <span class="s1">&#39;Kendujhar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Khurda&#39;</span><span class="p">:</span> <span class="s1">&#39;Khordha&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Balasore&#39;</span><span class="p">:</span> <span class="s1">&#39;Baleshwar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Nawarangpur&#39;</span><span class="p">:</span> <span class="s1">&#39;Nabarangapur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Nuapara&#39;</span><span class="p">:</span> <span class="s1">&#39;Nuapada&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Sonepur&#39;</span><span class="p">:</span> <span class="s1">&#39;Subarnapur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Boudh&#39;</span><span class="p">:</span> <span class="s1">&#39;Bauda&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Deogarh&#39;</span><span class="p">:</span> <span class="s1">&#39;Debagarh&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Ludhina&#39;</span><span class="p">:</span> <span class="s1">&#39;Ludhiana&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Mohali&#39;</span><span class="p">:</span> <span class="s1">&#39;Sahibzada Ajit Singh Nagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Ropar&#39;</span><span class="p">:</span> <span class="s1">&#39;Rupnagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Shahed Bhagat Singh Nagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Shahid Bhagat Singh Nagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Taran Taran&#39;</span><span class="p">:</span> <span class="s1">&#39;Tarn Taran&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Bhatinda&#39;</span><span class="p">:</span> <span class="s1">&#39;Bathinda&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;F.G. Sahib&#39;</span><span class="p">:</span> <span class="s1">&#39;Fatehgarh Sahib&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Ferozpur&#39;</span><span class="p">:</span> <span class="s1">&#39;Firozpur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Gurdashpur&#39;</span><span class="p">:</span> <span class="s1">&#39;Gurdaspur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Dholpur&#39;</span><span class="p">:</span> <span class="s1">&#39;Dhaulpur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Dungerpur&#39;</span><span class="p">:</span> <span class="s1">&#39;Dungarpur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Jalore&#39;</span><span class="p">:</span> <span class="s1">&#39;Jalor&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Banswar&#39;</span><span class="p">:</span> <span class="s1">&#39;Banswara&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Jhunjhunu&#39;</span><span class="p">:</span> <span class="s1">&#39;Jhunjhunun&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Karoli&#39;</span><span class="p">:</span> <span class="s1">&#39;Karauli&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Nagore&#39;</span><span class="p">:</span> <span class="s1">&#39;Nagaur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Shirohi&#39;</span><span class="p">:</span> <span class="s1">&#39;Sirohi&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Chittoregarh&#39;</span><span class="p">:</span> <span class="s1">&#39;Chittaurgarh&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Baska&#39;</span><span class="p">:</span> <span class="s1">&#39;Baksa&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;East&#39;</span><span class="p">:</span> <span class="s1">&#39;East Sikkim&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;North&#39;</span><span class="p">:</span> <span class="s1">&#39;North Sikkim&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;West&#39;</span><span class="p">:</span> <span class="s1">&#39;West Sikkim&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;South&#39;</span><span class="p">:</span> <span class="s1">&#39;South Sikkim&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kamrup(Metro)&#39;</span><span class="p">:</span> <span class="s1">&#39;Kamrup Metropolitan&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kamrup(Rural)&#39;</span><span class="p">:</span> <span class="s1">&#39;Kamrup&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Karbi-Anglong&#39;</span><span class="p">:</span> <span class="s1">&#39;Karbi Anglong&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Odalguri&#39;</span><span class="p">:</span> <span class="s1">&#39;Udalguri&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Sibsagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Sivasagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Dima Hasao(N.C.Hills)&#39;</span><span class="p">:</span> <span class="s1">&#39;Dima Hasao&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Nagapatinam&#39;</span><span class="p">:</span> <span class="s1">&#39;Nagappattinam&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Sivagangai&#39;</span><span class="p">:</span> <span class="s1">&#39;Sivaganga&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;The Nilgris&#39;</span><span class="p">:</span> <span class="s1">&#39;The Nilgiris&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Thoothukudi&#39;</span><span class="p">:</span> <span class="s1">&#39;Thoothukkudi&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Tiruchirapalli&#39;</span><span class="p">:</span> <span class="s1">&#39;Tiruchirappalli&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Tiruvallur&#39;</span><span class="p">:</span> <span class="s1">&#39;Thiruvallur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Villupuram&#39;</span><span class="p">:</span> <span class="s1">&#39;Viluppuram&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Virudhunagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Virudunagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kannyakumari&#39;</span><span class="p">:</span> <span class="s1">&#39;Kanniyakumari&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Behraich&#39;</span><span class="p">:</span> <span class="s1">&#39;Bahraich&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Bulandshahar&#39;</span><span class="p">:</span> <span class="s1">&#39;Bulandshahr&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Chotrapati Sahooji Mahara&#39;</span><span class="p">:</span> <span class="s1">&#39;Amethi&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Gautam Buddh Nagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Gautam Buddha Nagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Jyotiba Phule Nagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Amroha&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kashiram Nagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Kanpur Nagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kheri&#39;</span><span class="p">:</span> <span class="s1">&#39;Lakhimpur Kheri&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kushi Nagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Kushinagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Maha Maya Nagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Hathras&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Raebareli&#39;</span><span class="p">:</span> <span class="s1">&#39;Rae Bareli&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Ramabai Nagar/Kanpur Deha&#39;</span><span class="p">:</span> <span class="s1">&#39;Kanpur Dehat&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Badaayu&#39;</span><span class="p">:</span> <span class="s1">&#39;Budaun&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Sant Ravidas Nagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Sant Ravi Das Nagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Shrawasti&#39;</span><span class="p">:</span> <span class="s1">&#39;Shravasti&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Sonebhadra&#39;</span><span class="p">:</span> <span class="s1">&#39;Sonbhadra&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Udhamsinghnagar&#39;</span><span class="p">:</span> <span class="s1">&#39;Udham Singh Nagar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Haridwar&#39;</span><span class="p">:</span> <span class="s1">&#39;Hardwar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Pauri Garhwal&#39;</span><span class="p">:</span> <span class="s1">&#39;Garhwal&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;24 Parganas (North)&#39;</span><span class="p">:</span> <span class="s1">&#39;North 24 Parganas&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;24 Parganas (South)&#39;</span><span class="p">:</span> <span class="s1">&#39;South 24 Parganas&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Howrah&#39;</span><span class="p">:</span> <span class="s1">&#39;Haora&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Malda&#39;</span><span class="p">:</span> <span class="s1">&#39;Maldah&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Pachim Midnapore&#39;</span><span class="p">:</span> <span class="s1">&#39;Pashchim Medinipur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Purba Midnapore&#39;</span><span class="p">:</span> <span class="s1">&#39;Purba Medinipur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Purulia&#39;</span><span class="p">:</span> <span class="s1">&#39;Puruliya&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Burdwan&#39;</span><span class="p">:</span> <span class="s1">&#39;Barddhaman&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Coochbehar&#39;</span><span class="p">:</span> <span class="s1">&#39;Koch Bihar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Darjeeling&#39;</span><span class="p">:</span> <span class="s1">&#39;Darjiling&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Dinajpur (North)&#39;</span><span class="p">:</span> <span class="s1">&#39;Uttar Dinajpur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Dinajpur (South)&#39;</span><span class="p">:</span> <span class="s1">&#39;Dakshin Dinajpur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Hooghly&#39;</span><span class="p">:</span> <span class="s1">&#39;Hugli&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Jahanabad&#39;</span><span class="p">:</span> <span class="s1">&#39;Jehanabad&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Nawadah&#39;</span><span class="p">:</span> <span class="s1">&#39;Nawada&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Purnea&#39;</span><span class="p">:</span> <span class="s1">&#39;Purnia&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Shekhpura&#39;</span><span class="p">:</span> <span class="s1">&#39;Sheikhpura&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Shivhar&#39;</span><span class="p">:</span> <span class="s1">&#39;Sheohar&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;West Champaran&#39;</span><span class="p">:</span> <span class="s1">&#39;Pashchim Champaran&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;East Champaran&#39;</span><span class="p">:</span> <span class="s1">&#39;Purba Champaran&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Beejapur&#39;</span><span class="p">:</span> <span class="s1">&#39;Bijapur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Raigharh&#39;</span><span class="p">:</span> <span class="s1">&#39;Raigarh&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Sarguja&#39;</span><span class="p">:</span> <span class="s1">&#39;Surguja&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Dantewara&#39;</span><span class="p">:</span> <span class="s1">&#39;Dantewada&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Janjgir Champa&#39;</span><span class="p">:</span> <span class="s1">&#39;Janjgir-Champa&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Jaspur&#39;</span><span class="p">:</span> <span class="s1">&#39;Jashpur&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kabirdham&#39;</span><span class="p">:</span> <span class="s1">&#39;Kabeerdham&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Kanker&#39;</span><span class="p">:</span> <span class="s1">&#39;Uttar Bastar Kanker&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;D&amp;Nh&#39;</span><span class="p">:</span> <span class="s1">&#39;Dadra and Nagar Haveli&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Sangali&#39;</span><span class="p">:</span> <span class="s1">&#39;Sangli&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">SIZE_CLASSES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;Below 0.5&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;0.5-1.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.0-2.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;2.0-3.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;3.0-4.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;4.0-5.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;5.0-7.5&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;7.5-10.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;10.0-20.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;20.0 &amp; ABOVE&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<div class="viewcode-block" id="submitForm"><a class="viewcode-back" href="../../preprocessing/7_get_irrigation_source.html#preprocessing.7_get_irrigation_source.submitForm">[docs]</a><span class="k">def</span> <span class="nf">submitForm</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">district</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">size_class</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">downloadDir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function clicks the &quot;submit&quot; button and downloads the excel spreadsheet from the resulting page.</span>
+
+<span class="sd">    args:</span>
+<span class="sd">        driver: the webdriver to download from</span>
+<span class="sd">        counter: the index of the current unique dropdown configuration</span>
+<span class="sd">        downloadDir: download directory of the current webdriver</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">downloadDir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">district</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">size_class</span><span class="si">}</span><span class="s2">.csv&quot;</span><span class="p">)</span>
+    <span class="c1"># If the file is already in the data folder, don&#39;t try to download</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">new_file</span><span class="p">):</span>
+        <span class="k">return</span>
+    <span class="n">button_submit</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s2">&quot;_ctl0_ContentPlaceHolder1_btnSubmit&quot;</span><span class="p">)</span>
+    <span class="n">button_submit</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+
+    <span class="c1"># Download the data as a CSV</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">button_save</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_xpath</span><span class="p">(</span><span class="s1">&#39;//*[@id=&quot;ReportViewer1__ctl5__ctl4__ctl0_ButtonImg&quot;]&#39;</span><span class="p">)</span>
+        <span class="n">button_save</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">button_excel</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_xpath</span><span class="p">(</span><span class="s1">&#39;//*[@id=&quot;ReportViewer1__ctl5__ctl4__ctl0_Menu&quot;]/div[7]/a&#39;</span><span class="p">)</span>
+        <span class="n">button_excel</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+    <span class="c1"># If the download button isn&#39;t there, assume that this is an error page and skip this one by returning successfully</span>
+    <span class="k">except</span> <span class="n">NoSuchElementException</span><span class="p">:</span>
+        <span class="n">driver</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;http://agcensus.dacnet.nic.in/DistCharacteristic.aspx&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Rename the file so OS doesn&#39;t interrupt</span>
+    <span class="n">old_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">downloadDir</span><span class="p">,</span> <span class="s1">&#39;distsizedisplay5a.csv&#39;</span><span class="p">)</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">old_file</span><span class="p">):</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">old_file</span><span class="p">,</span> <span class="n">new_file</span><span class="p">)</span>
+
+    <span class="c1"># Click back button to go to main page</span>
+    <span class="n">button_back</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s2">&quot;btnBack&quot;</span><span class="p">)</span>
+    <span class="n">button_back</span><span class="o">.</span><span class="n">click</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="configureDropdowns"><a class="viewcode-back" href="../../preprocessing/7_get_irrigation_source.html#preprocessing.7_get_irrigation_source.configureDropdowns">[docs]</a><span class="k">def</span> <span class="nf">configureDropdowns</span><span class="p">(</span><span class="n">driver</span><span class="p">:</span> <span class="n">webdriver</span><span class="o">.</span><span class="n">chrome</span><span class="o">.</span><span class="n">webdriver</span><span class="o">.</span><span class="n">WebDriver</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This form configures the dropdown options based on the indices specified in the arguments.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        options: a list of tuples. The tuple MUST be of length 2. The first item of the tuple is the string ID of the</span>
+<span class="sd">                    dropdown element. The second item is the index of the option to choose from that dropdown.</span>
+<span class="sd">                    (for example: [(&#39;year&#39;, 2), (&#39;state&#39;, 1)] is a valid argument)</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        l: list of the string values used for each dropdown option, in the same order as the parameter.</span>
+<span class="sd">            (for example: [&#39;2005&#39;, &#39;California&#39;] would be a return value for the example input above)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Make the unique combination of options from the 6 dropdowns</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+        <span class="n">elementID</span> <span class="o">=</span> <span class="n">option</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">option</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">dropdown</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="n">elementID</span><span class="p">)</span>
+        <span class="n">current_option</span> <span class="o">=</span> <span class="n">dropdown</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s2">&quot;option&quot;</span><span class="p">)[</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">current_option</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+        <span class="n">l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_option</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">l</span></div>
+
+<div class="viewcode-block" id="findIndexByText"><a class="viewcode-back" href="../../preprocessing/7_get_irrigation_source.html#preprocessing.7_get_irrigation_source.findIndexByText">[docs]</a><span class="k">def</span> <span class="nf">findIndexByText</span><span class="p">(</span><span class="n">dropdownElement</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to find the index of element in dropdown menu by the text.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dropdownElement: Selenium dropdown element.</span>
+<span class="sd">        ext: String to match with option.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        index: Index of the option in the specified dropdown, where the text matches the option&#39;s text</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dropdownElement</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">))):</span>
+        <span class="k">if</span> <span class="n">dropdownElement</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="n">text</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">i</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;No option with text: &#39;</span> <span class="o">+</span> <span class="n">text</span> <span class="o">+</span> <span class="s1">&#39; was found&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="download_census"><a class="viewcode-back" href="../../preprocessing/7_get_irrigation_source.html#preprocessing.7_get_irrigation_source.download_census">[docs]</a><span class="k">def</span> <span class="nf">download_census</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">rootDir</span><span class="p">,</span> <span class="n">state_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">district_start</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to download files from agcensus website</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        index_year: index of the year dropdown</span>
+<span class="sd">        rootDir: folder to download files to</span>
+<span class="sd">        state_start: index of state dropdown to start from</span>
+<span class="sd">        district_start: index of district dropdown to start from</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">chrome_options</span> <span class="o">=</span> <span class="n">Options</span><span class="p">()</span>
+    <span class="c1"># This option fixes a problem with timeout exceptions not being thrown after the limit has been reached</span>
+    <span class="n">chrome_options</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--dns-prefetch-disable&#39;</span><span class="p">)</span>
+    <span class="c1"># Makes a new download directory for each year index</span>
+    <span class="n">downloadDir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">rootDir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">downloadDir</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">downloadDir</span><span class="p">)</span>
+    <span class="n">prefs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;download.default_directory&#39;</span> <span class="p">:</span> <span class="n">downloadDir</span><span class="p">}</span>
+    <span class="n">chrome_options</span><span class="o">.</span><span class="n">add_experimental_option</span><span class="p">(</span><span class="s1">&#39;prefs&#39;</span><span class="p">,</span> <span class="n">prefs</span><span class="p">)</span>
+    <span class="n">driver</span> <span class="o">=</span> <span class="n">webdriver</span><span class="o">.</span><span class="n">Chrome</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="n">chrome_options</span><span class="p">)</span>
+    <span class="n">driver</span><span class="o">.</span><span class="n">set_page_load_timeout</span><span class="p">(</span><span class="mi">180</span><span class="p">)</span>
+    <span class="n">driver</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;http://agcensus.dacnet.nic.in/DistSizeClass.aspx&quot;</span><span class="p">)</span>
+    <span class="c1"># Need to click the current year because the other dropdown options change based on this</span>
+    <span class="n">dropdown_year</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s2">&quot;_ctl0_ContentPlaceHolder1_ddlYear&quot;</span><span class="p">)</span>
+    <span class="n">dropdown_options</span> <span class="o">=</span> <span class="n">dropdown_year</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">)</span>
+    <span class="n">years</span> <span class="o">=</span> <span class="p">[</span><span class="n">option</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">dropdown_options</span><span class="p">]</span>
+    <span class="n">index_year</span> <span class="o">=</span> <span class="n">years</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">year</span><span class="p">)</span>
+    
+    <span class="n">dropdown_options</span><span class="p">[</span><span class="n">index_year</span><span class="p">]</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+
+    <span class="n">dropdown_social_group</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s2">&quot;_ctl0_ContentPlaceHolder1_ddlSocialGroup&quot;</span><span class="p">)</span>
+    <span class="c1"># We only want the option with &quot;ALL SOCIAL GROUPS&quot; for this project</span>
+    <span class="n">all_social_groups_index</span> <span class="o">=</span> <span class="n">findIndexByText</span><span class="p">(</span><span class="n">dropdown_social_group</span><span class="p">,</span> <span class="s1">&#39;ALL SOCIAL GROUPS&#39;</span><span class="p">)</span>
+    <span class="n">dropdown_social_group</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">)[</span><span class="n">all_social_groups_index</span><span class="p">]</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+
+    <span class="n">dropdown_state</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s2">&quot;_ctl0_ContentPlaceHolder1_ddlState&quot;</span><span class="p">)</span>
+    <span class="n">state_options_dropdown</span> <span class="o">=</span> <span class="n">dropdown_state</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s2">&quot;option&quot;</span><span class="p">)</span>
+    <span class="n">state_options</span> <span class="o">=</span> <span class="p">[</span><span class="n">option</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">state_options_dropdown</span><span class="p">]</span>
+    <span class="n">state_indices</span> <span class="o">=</span> <span class="p">[(</span><span class="n">state_options</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">state</span><span class="p">),</span> <span class="n">state</span><span class="p">)</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">index_state</span><span class="p">,</span> <span class="n">state_name</span> <span class="ow">in</span> <span class="n">state_indices</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dropdown_state</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s2">&quot;_ctl0_ContentPlaceHolder1_ddlState&quot;</span><span class="p">)</span>
+            <span class="n">dropdown_state</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">)[</span><span class="n">index_state</span><span class="p">]</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+            <span class="n">dropdown_district</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s2">&quot;_ctl0_ContentPlaceHolder1_ddlDistrict&quot;</span><span class="p">)</span>
+            <span class="n">num_options_district</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dropdown_district</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s2">&quot;option&quot;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">UnexpectedAlertPresentException</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;caught error&quot;</span><span class="p">)</span>
+            <span class="n">alert</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">switch_to</span><span class="o">.</span><span class="n">alert</span>
+            <span class="n">alert</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># If the outer loop&#39;s index is equal to the user-specified district to begin at, start from user-specified</span>
+        <span class="c1"># district. Otherwise, we start from 0</span>
+        <span class="n">district_loop_start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">index_state</span> <span class="o">==</span> <span class="n">state_start</span><span class="p">:</span>
+            <span class="n">district_loop_start</span> <span class="o">=</span> <span class="n">district_start</span>
+        <span class="k">for</span> <span class="n">index_district</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">district_loop_start</span><span class="p">,</span> <span class="n">num_options_district</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">size_class</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="s1">&#39;Below 0.5&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;0.5-1.0&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;1.0-2.0&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;2.0-3.0&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;3.0-4.0&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;4.0-5.0&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;5.0-7.5&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;7.5-10.0&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;10.0-20.0&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;20.0 &amp; ABOVE&#39;</span><span class="p">,</span>
+            <span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">sizeclass_tables</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s2">&quot;_ctl0_ContentPlaceHolder1_DropDownList5&quot;</span><span class="p">)</span>
+                    <span class="n">sizeclass_index</span> <span class="o">=</span> <span class="n">findIndexByText</span><span class="p">(</span><span class="n">sizeclass_tables</span><span class="p">,</span> <span class="n">size_class</span><span class="p">)</span>
+                    <span class="n">dropdown_district</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s2">&quot;_ctl0_ContentPlaceHolder1_ddlDistrict&quot;</span><span class="p">)</span>
+                    <span class="n">dropdown_district</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">)[</span><span class="n">index_district</span><span class="p">]</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+                    <span class="n">district_name</span> <span class="o">=</span> <span class="n">dropdown_district</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">)[</span><span class="n">index_district</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
+                    <span class="n">dropdown_tables</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s2">&quot;_ctl0_ContentPlaceHolder1_ddlTables&quot;</span><span class="p">)</span>
+                    <span class="n">landuse_table_index</span> <span class="o">=</span> <span class="n">findIndexByText</span><span class="p">(</span><span class="n">dropdown_tables</span><span class="p">,</span> <span class="s1">&#39;SOURCES OF IRRIGATION&#39;</span><span class="p">)</span>
+                    <span class="n">dropdown_tables</span><span class="o">.</span><span class="n">find_elements_by_tag_name</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">)[</span><span class="n">landuse_table_index</span><span class="p">]</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+
+                    <span class="n">dropdown_input</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="p">(</span><span class="s1">&#39;_ctl0_ContentPlaceHolder1_DropDownList5&#39;</span><span class="p">,</span> <span class="n">sizeclass_index</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_ctl0_ContentPlaceHolder1_ddlYear&#39;</span><span class="p">,</span> <span class="n">index_year</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_ctl0_ContentPlaceHolder1_ddlSocialGroup&#39;</span><span class="p">,</span> <span class="n">all_social_groups_index</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_ctl0_ContentPlaceHolder1_ddlState&#39;</span><span class="p">,</span> <span class="n">index_state</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_ctl0_ContentPlaceHolder1_ddlDistrict&#39;</span><span class="p">,</span> <span class="n">index_district</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_ctl0_ContentPlaceHolder1_ddlTables&#39;</span><span class="p">,</span> <span class="n">landuse_table_index</span><span class="p">)</span>
+                    <span class="p">]</span>
+                    <span class="c1"># If anything in this try block fails, we will re-try the same configuration up to 3 times before</span>
+                    <span class="c1"># we move on to the next one</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">options</span> <span class="o">=</span> <span class="n">configureDropdowns</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="n">dropdown_input</span><span class="p">)</span>
+                        <span class="n">submitForm</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="n">state_name</span><span class="p">,</span> <span class="n">district_name</span><span class="p">,</span> <span class="n">size_class</span><span class="p">,</span> <span class="n">downloadDir</span><span class="p">)</span>
+                        <span class="k">global</span> <span class="n">_state_start</span>
+                        <span class="n">_state_start</span> <span class="o">=</span> <span class="n">index_state</span>
+                        <span class="k">global</span> <span class="n">_district_start</span>
+                        <span class="n">_district_start</span> <span class="o">=</span> <span class="n">index_district</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;successfully downloaded configuration: y&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">index_year</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;-sg&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">all_social_groups_index</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;-s&#39;</span> <span class="o">+</span>
+                                <span class="nb">str</span><span class="p">(</span><span class="n">index_state</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;-d&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">index_district</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;-t&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">landuse_table_index</span><span class="p">))</span>
+
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="c1"># If configureDropdowns failed, then options will be null</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">options</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;There was an error while submitting the form for options:</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                                    <span class="s1">&#39;Year: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                                    <span class="s1">&#39;Social Group: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                                    <span class="s1">&#39;State: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                                    <span class="s1">&#39;District: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                                    <span class="s1">&#39;Table: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;There was an error while submitting the form for options:</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                                    <span class="s1">&#39;Year index: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">index_year</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                                    <span class="s1">&#39;Social Group index: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">all_social_groups_index</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                                    <span class="s1">&#39;State index: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">index_state</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                                    <span class="s1">&#39;District index: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">index_district</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                                    <span class="s1">&#39;Table index: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">landuse_table_index</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+                            <span class="c1"># Retry up to 3 more times. First success breaks out of for-loop</span>
+                            <span class="k">try</span><span class="p">:</span>
+                                <span class="n">driver</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;http://agcensus.dacnet.nic.in/DistCharacteristic.aspx&quot;</span><span class="p">)</span>
+                                <span class="n">configureDropdowns</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="n">dropdown_input</span><span class="p">)</span>
+                                <span class="n">submitForm</span><span class="p">(</span><span class="n">driver</span><span class="p">,</span> <span class="n">state_name</span><span class="p">,</span> <span class="n">district_name</span><span class="p">,</span> <span class="n">downloadDir</span><span class="p">)</span>
+                                <span class="n">_state_start</span> <span class="o">=</span> <span class="n">index_state</span>
+                                <span class="n">_district_start</span> <span class="o">=</span> <span class="n">index_district</span>
+                                <span class="k">break</span>
+                            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                                <span class="c1"># Keep trying the same configuration</span>
+                                <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                                <span class="k">continue</span>
+                        <span class="c1"># Okay.. current configuration isn&#39;t working. Stop trying and move onto the next.</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span>
+                <span class="k">except</span> <span class="n">UnexpectedAlertPresentException</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;caught error&quot;</span><span class="p">)</span>
+                    <span class="n">alert</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">switch_to</span><span class="o">.</span><span class="n">alert</span>
+                    <span class="n">alert</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+                    <span class="k">continue</span></div>
+
+
+<div class="viewcode-block" id="get_districts"><a class="viewcode-back" href="../../preprocessing/7_get_irrigation_source.html#preprocessing.7_get_irrigation_source.get_districts">[docs]</a><span class="k">def</span> <span class="nf">get_districts</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Reads all global admin 2 areas, and selects only those in India. Then sets all columns for size classes to -1 as a placeholder value.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        districts: all districts in India with placeholder columns for sizes.</span>
+<span class="sd">        </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">districts</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="s1">&#39;GADM&#39;</span><span class="p">,</span> <span class="s1">&#39;gadm36_2.shp&#39;</span><span class="p">))</span>
+    <span class="n">districts</span> <span class="o">=</span> <span class="n">districts</span><span class="p">[</span><span class="n">districts</span><span class="p">[</span><span class="s1">&#39;GID_0&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;IND&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">size_class</span> <span class="ow">in</span> <span class="n">SIZE_CLASSES</span><span class="p">:</span>  <span class="c1"># create empty columns</span>
+        <span class="n">districts</span><span class="p">[</span><span class="n">size_class</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">return</span> <span class="n">districts</span></div>
+
+<div class="viewcode-block" id="parse_census_file"><a class="viewcode-back" href="../../preprocessing/7_get_irrigation_source.html#preprocessing.7_get_irrigation_source.parse_census_file">[docs]</a><span class="k">def</span> <span class="nf">parse_census_file</span><span class="p">(</span><span class="n">fp</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Reads census file in csv-format from disk, and returns values. Also reads the state and district name.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fp: csv-filepath.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        df: DataFrame with census data for given state and district.</span>
+<span class="sd">        state: State of census data.</span>
+<span class="sd">        district: District for census data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+    <span class="c1"># split_filename = fp.split(&#39;-&#39;)</span>
+    <span class="c1"># state = split_filename[0]</span>
+    <span class="c1"># district = split_filename[1]</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Textbox38&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;STATE : &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">district</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Textbox44&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;DISTRICT : &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">df</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">district</span></div>
+
+<span class="k">def</span> <span class="nf">match_name_and_fill</span><span class="p">(</span><span class="n">census_data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">districts</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">district</span><span class="p">):</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
+    <span class="n">district</span> <span class="o">=</span> <span class="n">district</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">STATE_TRANSLATION</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">STATE_TRANSLATION</span><span class="p">[</span><span class="n">state</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">district</span> <span class="ow">in</span> <span class="n">DISTRICT_TRANSLATION</span><span class="p">:</span>
+        <span class="n">district</span> <span class="o">=</span> <span class="n">DISTRICT_TRANSLATION</span><span class="p">[</span><span class="n">district</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">district</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="s1">&#39;Adilabad&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Hyderabad&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Karimnagar&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Khammam&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Mahbubnagar&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Medak&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Nalgonda&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Nizamabad&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Ranga Reddy&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Warangal&#39;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="ow">and</span> <span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;Andhra Pradesh&#39;</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;Telangana&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">districts</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">districts</span><span class="p">[</span><span class="s1">&#39;NAME_1&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">state</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">districts</span><span class="p">[</span><span class="s1">&#39;NAME_2&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">district</span><span class="p">)])</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">district</span><span class="p">,</span> <span class="s1">&#39;not found&#39;</span><span class="p">)</span>
+        <span class="k">raise</span>
+    <span class="n">size_class</span> <span class="o">=</span> <span class="n">census_data</span><span class="p">[</span><span class="s1">&#39;Textbox82&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;SIZE CLASS : &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">ratio_gw_irrigated</span> <span class="o">=</span> <span class="p">(</span><span class="n">census_data</span><span class="p">[</span><span class="s1">&#39;well_hd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">census_data</span><span class="p">[</span><span class="s1">&#39;tubewel_hd&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">/</span> <span class="n">census_data</span><span class="p">[</span><span class="s1">&#39;total_hold&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">districts</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">districts</span><span class="p">[</span><span class="s1">&#39;NAME_1&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">state</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">districts</span><span class="p">[</span><span class="s1">&#39;NAME_2&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">district</span><span class="p">),</span> <span class="n">size_class</span><span class="p">]</span> <span class="o">=</span> <span class="n">ratio_gw_irrigated</span>
+
+<div class="viewcode-block" id="create_shapefile_and_clip_to_study_region"><a class="viewcode-back" href="../../preprocessing/7_get_irrigation_source.html#preprocessing.7_get_irrigation_source.create_shapefile_and_clip_to_study_region">[docs]</a><span class="k">def</span> <span class="nf">create_shapefile_and_clip_to_study_region</span><span class="p">(</span><span class="n">mask_fp</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Create shapefile of India districts, and complements with downloaded census data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mask_fp: Filepath of the study region shapefile.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        study_region_districts: GeoDataFrame wit all districts and downloaded census data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">all_districts</span> <span class="o">=</span> <span class="n">get_districts</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">csv_dir</span><span class="p">)):</span>
+        <span class="n">census_data</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">district</span> <span class="o">=</span> <span class="n">parse_census_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">csv_dir</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;LAKSHADWEEP&#39;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;DELHI&#39;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">district</span> <span class="o">==</span> <span class="s1">&#39;BRIHANMUMBAI&#39;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">match_name_and_fill</span><span class="p">(</span><span class="n">census_data</span><span class="p">,</span> <span class="n">all_districts</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">district</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">mask_fp</span><span class="p">)</span>  
+    <span class="n">study_region_districts</span> <span class="o">=</span> <span class="n">all_districts</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">gpd</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">all_districts</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>  <span class="c1"># clip by study region</span>
+    <span class="k">return</span> <span class="n">study_region_districts</span></div>
+
+<div class="viewcode-block" id="export_irrigation_sources"><a class="viewcode-back" href="../../preprocessing/7_get_irrigation_source.html#preprocessing.7_get_irrigation_source.export_irrigation_sources">[docs]</a><span class="k">def</span> <span class="nf">export_irrigation_sources</span><span class="p">(</span><span class="n">irrigation_source_shapefile</span><span class="p">,</span> <span class="n">root_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s2">&quot;areamaps&quot;</span><span class="p">,</span> <span class="s2">&quot;submask.tif&quot;</span><span class="p">))</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+        <span class="n">profile</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
+        <span class="n">transform</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;transform&#39;</span><span class="p">]</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;height&#39;</span><span class="p">],</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;width&#39;</span><span class="p">]</span>
+        <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;nodata&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">SIZE_CLASSES</span><span class="p">)</span>
+        <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;dtype&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="s1">&#39;irrigation_source.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+        <span class="n">irrigation_source_shapefile</span><span class="p">[</span><span class="s1">&#39;total&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">irrigation_source_shapefile</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">SIZE_CLASSES</span><span class="p">)]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">size_class</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">SIZE_CLASSES</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">irrigation_source_shapefile</span><span class="p">[</span><span class="n">size_class</span><span class="p">]</span> <span class="o">=</span> <span class="n">irrigation_source_shapefile</span><span class="p">[</span><span class="n">size_class</span><span class="p">]</span> <span class="o">/</span> <span class="n">irrigation_source_shapefile</span><span class="p">[</span><span class="s1">&#39;total&#39;</span><span class="p">]</span>
+
+            <span class="n">geometries</span> <span class="o">=</span> <span class="p">[(</span><span class="n">shapely</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">mapping</span><span class="p">(</span><span class="n">geom</span><span class="p">),</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span><span class="p">,</span> <span class="n">geom</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">irrigation_source_shapefile</span><span class="p">[</span><span class="n">size_class</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">irrigation_source_shapefile</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())]</span>
+
+            <span class="n">farm_size</span> <span class="o">=</span> <span class="n">rasterize</span><span class="p">(</span><span class="n">geometries</span><span class="p">,</span> <span class="n">out_shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">fill</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">all_touched</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">farm_size</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="s1">&#39;irrigation_source.txt&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">SIZE_CLASSES</span><span class="p">))</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="n">chromedriver_autoinstaller</span><span class="o">.</span><span class="n">install</span><span class="p">()</span>
+
+    <span class="n">year</span> <span class="o">=</span> <span class="s1">&#39;2010-11&#39;</span>
+    <span class="n">root_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;agents&#39;</span><span class="p">,</span> <span class="s1">&#39;irrigation_source&#39;</span><span class="p">,</span> <span class="n">year</span><span class="p">)</span>
+    <span class="n">csv_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="s1">&#39;csv&#39;</span><span class="p">)</span>
+    <span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ANDHRA PRADESH&#39;</span><span class="p">,</span> <span class="s1">&#39;KARNATAKA&#39;</span><span class="p">,</span> <span class="s1">&#39;MAHARASHTRA&#39;</span><span class="p">]</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">download_census</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">csv_dir</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;downloadFiles failed, continuing from where it failed&#39;</span><span class="p">)</span>
+                <span class="k">continue</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;We finished downloading everything&#39;</span><span class="p">)</span>
+
+        <span class="n">error</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">csv_dir</span><span class="p">):</span>
+            <span class="n">fp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">csv_dir</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">csv_dir</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error occured for </span><span class="si">{</span><span class="n">fn</span><span class="si">}</span><span class="s2">. Removing file and restarting.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="n">mask_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="s1">&#39;mask.shp&#39;</span><span class="p">)</span>
+    <span class="n">irrigation_source_shapefile</span> <span class="o">=</span> <span class="n">create_shapefile_and_clip_to_study_region</span><span class="p">(</span><span class="n">mask_fn</span><span class="p">)</span>
+
+    <span class="c1"># copy size classes for enclaved Hyderabad from surounding Ranga Reddy district</span>
+    <span class="k">for</span> <span class="n">size_class</span> <span class="ow">in</span> <span class="n">SIZE_CLASSES</span><span class="p">:</span>
+        <span class="n">irrigation_source_shapefile</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">irrigation_source_shapefile</span><span class="p">[</span><span class="s1">&#39;GID_2&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;IND.32.2_1&#39;</span><span class="p">,</span> <span class="n">size_class</span><span class="p">]</span> <span class="o">=</span> <span class="n">irrigation_source_shapefile</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">irrigation_source_shapefile</span><span class="p">[</span><span class="s1">&#39;GID_2&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;IND.32.9_1&#39;</span><span class="p">,</span> <span class="n">size_class</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">irrigation_source_shapefile</span><span class="p">[</span><span class="n">size_class</span><span class="p">]))</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>  <span class="c1"># make sure all are filled now</span>
+    
+    <span class="n">export_irrigation_sources</span><span class="p">(</span><span class="n">irrigation_source_shapefile</span><span class="p">,</span> <span class="n">root_dir</span><span class="p">)</span>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; <a href="../../copyright.html">Copyright</a> 2022, IIASA and VU-IVM.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

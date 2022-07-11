@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Farmers &mdash; GEB 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" />
+    <link rel="next" title="NGO" href="ngo.html" />
+    <link rel="prev" title="Agents" href="__init__.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> GEB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../preprocessing/preprocessing.html">Preprocessing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../running.html">Running the model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../HRUs.html">Farm-level HRUs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Agents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="__init__.html">Agents</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Farmers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ngo.html">NGO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="government.html">Government</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cwatm_model.html">CWatM Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../report.html">Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../artists.html">Artists</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../authors_page.html">Authors</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GEB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Farmers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/agents/farmers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="farmers">
+<h1>Farmers<a class="headerlink" href="#farmers" title="Permalink to this heading"></a></h1>
+<p>Farmers are at the center of the GEB model, communicating directly to the hydrological model. First, the farmers are initialized using the previously created datafiles in the preprocessing scripts. Every timestep <a class="reference internal" href="#agents.farmers.Farmers.step" title="agents.farmers.Farmers.step"><code class="xref py py-meth docutils literal notranslate"><span class="pre">agents.farmers.Farmers.step()</span></code></a> method is called first, and farmers harvest and sow crops. When crops are harvested, their havest is <cite>stored</cite> in the agent class. Then, the hydrological model is run, calling <a class="reference internal" href="#agents.farmers.Farmers.abstract_water" title="agents.farmers.Farmers.abstract_water"><code class="xref py py-meth docutils literal notranslate"><span class="pre">agents.farmers.Farmers.abstract_water()</span></code></a> from the water demand module of CWatM. Here, the farmers can decide based on the availability of water, soil moisture content as well as their own characteristics whether to irrigate, from which sources and how much. These decisions are immediately communicated back to the hydrological model which continues the calculations for that timestep. Once the hydrological model is done, the cycle repeats and calling <a class="reference internal" href="#agents.farmers.Farmers.step" title="agents.farmers.Farmers.step"><code class="xref py py-meth docutils literal notranslate"><span class="pre">agents.farmers.Farmers.step()</span></code></a> again.</p>
+<span class="target" id="module-agents.farmers"></span><dl class="py class">
+<dt class="sig sig-object py" id="agents.farmers.Farmers">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Farmers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agents</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduncancy</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers" title="Permalink to this definition"></a></dt>
+<dd><p>The agent class for the farmers. Contains all data and behaviourial methods. The __init__ function only gets the model as arguments, the agent parent class and the redundancy. All other variables are loaded at later stages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – The GEB model.</p></li>
+<li><p><strong>agents</strong> – The class that includes all agent types (allowing easier communication between agents).</p></li>
+<li><p><strong>redundancy</strong> – a lot of data is saved in pre-allocated NumPy arrays. While this allows much faster operation, it does mean that the number of agents cannot grow beyond the size of the pre-allocated arrays. This parameter allows you to specify how much redundancy should be used. A lower redundancy means less memory is used, but the model crashes if the redundancy is insufficient.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.abstract_water">
+<span class="sig-name descname"><span class="pre">abstract_water</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">HRU_to_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">totalPotIrrConsumption</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_channel_storage_m3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_groundwater_m3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groundwater_head</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_reservoir_storage_m3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command_areas</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.abstract_water"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.abstract_water" title="Permalink to this definition"></a></dt>
+<dd><p>This function allows the abstraction of water by farmers for irrigation purposes. It’s main purpose is to call the relevant numba function to do the actual abstraction. In addition, the function saves the abstraction from the various sources by farmer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell_area</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – the area of each subcell in m2.</p></li>
+<li><p><strong>HRU_to_grid</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – array to map the index of each subcell to the corresponding cell.</p></li>
+<li><p><strong>totalPotIrrConsumption</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – potential irrigation consumption.</p></li>
+<li><p><strong>available_channel_storage_m3</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – water available for irrigation from channels.</p></li>
+<li><p><strong>groundwater_head</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – groundwater head.</p></li>
+<li><p><strong>available_groundwater_m3</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – water available for irrigation from groundwater.</p></li>
+<li><p><strong>available_reservoir_storage_m3</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – water available for irrigation from reservoirs.</p></li>
+<li><p><strong>command_areas</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – command areas associated with reservoirs (i.e., which areas can access water from which reservoir.)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>water_withdrawal_m</strong> – water withdrawal in meters</p></li>
+<li><p><strong>water_consumption_m</strong> – water consumption in meters</p></li>
+<li><p><strong>returnFlowIrr_m</strong> – return flow in meters</p></li>
+<li><p><strong>addtoevapotrans_m</strong> – evaporated irrigation water in meters</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.abstract_water_numba">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">abstract_water_numba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activation_order</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_indices_per_farmer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">water_limited_days</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_water_efficient</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">irrigated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groundwater_irrigated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">HRU_to_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">totalPotIrrConsumption</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_channel_storage_m3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_groundwater_m3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groundwater_head</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_reservoir_storage_m3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command_areas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_fraction</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.abstract_water_numba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.abstract_water_numba" title="Permalink to this definition"></a></dt>
+<dd><p>This function is used to regulate the irrigation behavior of farmers. The farmers are “activated” by the given <cite>activation_order</cite> and each farmer can irrigate from the various water sources, given water is available and the farmers has the means to abstract water. The abstraction order is channel irrigation, reservoir irrigation, groundwater irrigation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>activation_order</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Order in which the agents are activated. Agents that are activated first get a first go at extracting water, leaving less water for other farmers.</p></li>
+<li><p><strong>field_indices_per_farmer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – This array contains the indices where the fields of a farmer are stored in <cite>field_indices</cite>.</p></li>
+<li><p><strong>field_indices</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – This array contains the indices of all fields, ordered by farmer. In other words, if a farmer owns multiple fields, the indices of the fields are indices.</p></li>
+<li><p><strong>water_limited_days</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Current number of days where farmer has been water limited.</p></li>
+<li><p><strong>is_water_efficient</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Boolean array that specifies whether the specific farmer is efficient with water use.</p></li>
+<li><p><strong>irrigated</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Array that specifies whether a farm is irrigated.</p></li>
+<li><p><strong>groundwater_irrigated</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Array that specifies whether a farm is groundwater irrigated.</p></li>
+<li><p><strong>cell_area</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – The area of each subcell in m2.</p></li>
+<li><p><strong>HRU_to_grid</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Array to map the index of each subcell to the corresponding cell.</p></li>
+<li><p><strong>crop_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Map of the currently growing crops.</p></li>
+<li><p><strong>totalPotIrrConsumption</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Potential irrigation consumption.</p></li>
+<li><p><strong>available_channel_storage_m3</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Water available for irrigation from channels.</p></li>
+<li><p><strong>groundwater_head</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Groundwater head.</p></li>
+<li><p><strong>available_groundwater_m3</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Water available for irrigation from groundwater.</p></li>
+<li><p><strong>available_reservoir_storage_m3</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Water available for irrigation from reservoirs.</p></li>
+<li><p><strong>command_areas</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Command areas associated with reservoirs (i.e., which areas can access water from which reservoir.)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>channel_abstraction_m3_by_farmer</strong> – Channel abstraction by farmer in m3.</p></li>
+<li><p><strong>reservoir_abstraction_m3_by_farmer</strong> – Revervoir abstraction by farmer in m3.</p></li>
+<li><p><strong>groundwater_abstraction_m3_by_farmer</strong> – Groundwater abstraction by farmer in m3.</p></li>
+<li><p><strong>water_withdrawal_m</strong> – Water withdrawal in meters.</p></li>
+<li><p><strong>water_consumption_m</strong> – Water consumption in meters.</p></li>
+<li><p><strong>returnFlowIrr_m</strong> – Return flow in meters.</p></li>
+<li><p><strong>addtoevapotrans_m</strong> – Evaporated irrigation water in meters.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.activation_order_by_elevation">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">activation_order_by_elevation</span></span><a class="headerlink" href="#agents.farmers.Farmers.activation_order_by_elevation" title="Permalink to this definition"></a></dt>
+<dd><p>Activation order is determined by the agent elevation, starting from the highest.
+Agents with the same elevation are randomly shuffled.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.add_agents">
+<span class="sig-name descname"><span class="pre">add_agents</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.add_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.add_agents" title="Permalink to this definition"></a></dt>
+<dd><p>This function can be used to add new farmers, but is not yet implemented.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.current_day_of_year">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">current_day_of_year</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#agents.farmers.Farmers.current_day_of_year" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the current day of the year.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>day</strong> – current day of the year.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.diffuse_water_efficiency_knowledge">
+<span class="sig-name descname"><span class="pre">diffuse_water_efficiency_knowledge</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.diffuse_water_efficiency_knowledge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.diffuse_water_efficiency_knowledge" title="Permalink to this definition"></a></dt>
+<dd><p>When this method is called, all farmers that have a high water efficiency, spread knowledge to a maximum of three other farmers within 5000 meter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.field_size_per_farmer">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">field_size_per_farmer</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#agents.farmers.Farmers.field_size_per_farmer" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the field size for each farmer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>field_size_per_farmer</strong> – Field size for each farmer in m2.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.field_size_per_farmer_numba">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">field_size_per_farmer_numba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">field_indices_per_farmer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_area</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.field_size_per_farmer_numba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.field_size_per_farmer_numba" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the field size for each farmer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>field_indices_per_farmer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – This array contains the indices where the fields of a farmer are stored in <cite>field_indices</cite>.</p></li>
+<li><p><strong>field_indices</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – This array contains the indices of all fields, ordered by farmer. In other words, if a farmer owns multiple fields, the indices of the fields are indices.</p></li>
+<li><p><strong>cell_area</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Subarray of cell_area.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>field_size_per_farmer</strong> – Field size for each farmer in m2.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.get_crop_age_and_harvest_day_initial">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_crop_age_and_harvest_day_initial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_month</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planting_schemes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">irrigating</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planting_scheme</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_day_per_month</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">days_in_year</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">365</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.get_crop_age_and_harvest_day_initial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.get_crop_age_and_harvest_day_initial" title="Permalink to this definition"></a></dt>
+<dd><p>When the model is initalized, crops are already growing. This function finds out which crops are growing at that stage, and how far in their growth stage they are.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of farmers.</p></li>
+<li><p><strong>current_month</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Current month.</p></li>
+<li><p><strong>current_day</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Current day.</p></li>
+<li><p><strong>planting_schemes</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – <p>A 6-dimensional array which contains the planing schemes.</p>
+<ol class="arabic simple">
+<li><p>Whether the crop is irrigated or not.</p></li>
+<li><p>The unit code for the crop.</p></li>
+<li><p>The crop.</p></li>
+<li><p>The planting scheme (e.g., single or double cropping).</p></li>
+<li><p>If multicropping, the various crop stages.</p></li>
+<li><p>The planting month and the harvest month.</p></li>
+</ol>
+</p></li>
+<li><p><strong>crop</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Crops grown by each farmer.</p></li>
+<li><p><strong>irrigating</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Whether each farmers irrigates or not (True is irrigating, False is not).</p></li>
+<li><p><strong>unit_code</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – The unit code of each farmer.</p></li>
+<li><p><strong>planting_scheme</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – The planting scheme for each farmer.</p></li>
+<li><p><strong>start_day_per_month</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – The starting day of the year for each month.</p></li>
+<li><p><strong>days_in_year</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of days in year.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.get_crop_factors">
+<span class="sig-name descname"><span class="pre">get_crop_factors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.get_crop_factors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.get_crop_factors" title="Permalink to this definition"></a></dt>
+<dd><p>Loads crop factors from disk. The length of the various crop stages is relative and is cumulated to one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.get_crop_yield_factors">
+<span class="sig-name descname"><span class="pre">get_crop_yield_factors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.get_crop_yield_factors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.get_crop_yield_factors" title="Permalink to this definition"></a></dt>
+<dd><p>Read csv-file of values for crop water depletion. Obtained from Table 2 of this paper: <a class="reference external" href="https://doi.org/10.1016/j.jhydrol.2009.07.031">https://doi.org/10.1016/j.jhydrol.2009.07.031</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>yield_factors</strong> – dictonary with np.ndarray of values per crop for each variable.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.get_yield_ratio">
+<span class="sig-name descname"><span class="pre">get_yield_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">harvest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actual_transpiration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">potential_transpiration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_map</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.get_yield_ratio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.get_yield_ratio" title="Permalink to this definition"></a></dt>
+<dd><p>Gets yield ratio for each crop given the ratio between actual and potential evapostranspiration during growth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>harvest</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Map of crops that are harvested.</p></li>
+<li><p><strong>actual_transpiration</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Actual evapotranspiration during crop growth period.</p></li>
+<li><p><strong>potential_transpiration</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Potential evapotranspiration during crop growth period.</p></li>
+<li><p><strong>crop_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Subarray of type of crop grown.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>yield_ratio</strong> – Map of yield ratio.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.get_yield_ratio_numba">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_yield_ratio_numba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crop_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evap_ratios</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.get_yield_ratio_numba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.get_yield_ratio_numba" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate yield ratio based on <a class="reference external" href="https://doi.org/10.1016/j.jhydrol.2009.07.031">https://doi.org/10.1016/j.jhydrol.2009.07.031</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>crop_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>) – array of currently harvested crops.</p></li>
+<li><p><strong>evap_ratios</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>) – ratio of actual to potential evapotranspiration of harvested crops.</p></li>
+<li><p><strong>alpha</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>) – alpha value per crop used in MIRCA2000.</p></li>
+<li><p><strong>beta</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>) – beta value per crop used in MIRCA2000.</p></li>
+<li><p><strong>P0</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>) – P0 value per crop used in MIRCA2000.</p></li>
+<li><p><strong>P1</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>) – P1 value per crop used in MIRCA2000.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>yield_ratios</strong> – yield ratio (as ratio of maximum obtainable yield) per harvested crop.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.harvest">
+<span class="sig-name descname"><span class="pre">harvest</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.harvest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.harvest" title="Permalink to this definition"></a></dt>
+<dd><p>This function determines which crops needs to be harvested, based on the current age of the crops and the harvest age of the crop. First a helper function is used to obtain the harvest map. Then, if at least 1 field is harvested, the yield ratio is obtained for all fields using the ratio of actual to potential evapotranspiration, saves the harvest per farmer and potentially invests in water saving techniques.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.harvest_numba">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">harvest_numba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_day_per_month</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_indices_per_farmer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_age_days</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_harvest_age_days</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_water_limited_days</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">next_plant_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">next_multicrop_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_multicrop_periods</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planting_schemes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">irrigating</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planting_scheme</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">switch_crops</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_size_per_farmer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.harvest_numba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.harvest_numba" title="Permalink to this definition"></a></dt>
+<dd><p>This function determines whether crops are ready to be harvested by comparing the crop harvest age to the current age of the crop. If the crop is harvested, the crops next multicrop index and next plant day are determined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Number of farmers.</p></li>
+<li><p><strong>start_day_per_month</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Array containing the starting day of each month.</p></li>
+<li><p><strong>field_indices_per_farmer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – This array contains the indices where the fields of a farmer are stored in <cite>field_indices</cite>.</p></li>
+<li><p><strong>field_indices</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – This array contains the indices of all fields, ordered by farmer. In other words, if a farmer owns multiple fields, the indices of the fields are indices.</p></li>
+<li><p><strong>crop_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Subarray map of crops.</p></li>
+<li><p><strong>crop_age_days</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Subarray map of current crop age in days.</p></li>
+<li><p><strong>crop_harvest_age_days</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Subarray map of crop harvest age in days.</p></li>
+<li><p><strong>n_water_limited_days</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Number of days that crop was water limited.</p></li>
+<li><p><strong>next_plant_day</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Subarray map of next planting day.</p></li>
+<li><p><strong>next_multicrop_index</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Subarray map of the next multicropping index.</p></li>
+<li><p><strong>n_multicrop_periods</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Subarray map of the number of multicropping periods.</p></li>
+<li><p><strong>planting_schemes</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – <p>A 6-dimensional array which contains the planing schemes.</p>
+<ol class="arabic simple">
+<li><p>Whether the crop is irrigated or not.</p></li>
+<li><p>The unit code for the crop.</p></li>
+<li><p>The crop.</p></li>
+<li><p>The planting scheme (e.g., single or double cropping).</p></li>
+<li><p>If multicropping, the various crop stages.</p></li>
+<li><p>The planting month and the harvest month.</p></li>
+</ol>
+</p></li>
+<li><p><strong>irrigating</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Whether each farmers irrigates or not (True is irrigating, False is not).</p></li>
+<li><p><strong>unit_code</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – The unit code of each farmer.</p></li>
+<li><p><strong>crop</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Crops grown by each farmer.</p></li>
+<li><p><strong>planting_scheme</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – The planting scheme for each farmer.</p></li>
+<li><p><strong>switch_crops</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – Whether to switch crops or not.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>harvest</strong> – Boolean subarray map of fields to be harvested.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.initiate_agents">
+<span class="sig-name descname"><span class="pre">initiate_agents</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.initiate_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.initiate_agents" title="Permalink to this definition"></a></dt>
+<dd><p>Calls functions to initialize all agent attributes, including their locations. Then, crops are initially planted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.initiate_attributes">
+<span class="sig-name descname"><span class="pre">initiate_attributes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.initiate_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.initiate_attributes" title="Permalink to this definition"></a></dt>
+<dd><p>This function is used to initiate all agent attributes, such as crop type, irrigiation type and elevation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.initiate_locations">
+<span class="sig-name descname"><span class="pre">initiate_locations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.initiate_locations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.initiate_locations" title="Permalink to this definition"></a></dt>
+<dd><p>Loads locations of the farmers from .npy-file and saves to self.locations. Sets self.n to the current numbers of farmers, and sets self.max_n to the maximum number of farmers that can be expected in the model (model will fail if more than max_n farmers.) considering reducancy parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.invest_in_water_efficiency">
+<span class="sig-name descname"><span class="pre">invest_in_water_efficiency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">harvesting_farmers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.invest_in_water_efficiency"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.invest_in_water_efficiency" title="Permalink to this definition"></a></dt>
+<dd><p>In the scenario <cite>self_investments</cite> farmers invest in water saving techniques when their harvest starts dropping. Concretely if their harvest is lower than the previous harvests, they do so.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>harvesting_farmers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – farmers that harvest in this timestep.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.plant">
+<span class="sig-name descname"><span class="pre">plant</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.plant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.plant" title="Permalink to this definition"></a></dt>
+<dd><p>Determines when and what crop should be planted, mainly through calling the <a class="reference internal" href="#agents.farmers.Farmers.plant_numba" title="agents.farmers.Farmers.plant_numba"><code class="xref py py-meth docutils literal notranslate"><span class="pre">agents.farmers.Farmers.plant_numba()</span></code></a>. Then converts the array to cupy array if model is running with GPU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.plant_initial">
+<span class="sig-name descname"><span class="pre">plant_initial</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.plant_initial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.plant_initial" title="Permalink to this definition"></a></dt>
+<dd><p>When the model is initalized, crops are already growing. This function first finds out which farmers are already growing crops, how old these are, as well as the multicrop indices. Then, these arrays per farmer are converted to the field array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.plant_numba">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">plant_numba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_day_per_month</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">next_plant_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_indices_per_farmer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planting_schemes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">irrigating</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_water_limited_days</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">planting_scheme</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">next_multicrop_index</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.plant_numba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.plant_numba" title="Permalink to this definition"></a></dt>
+<dd><p>Determines when and what crop should be planted, by comparing the current day to the next plant day. Also sets the haverst age of the plant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of farmers.</p></li>
+<li><p><strong>start_day_per_month</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Starting day of each month of year.</p></li>
+<li><p><strong>current_day</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Current day.</p></li>
+<li><p><strong>next_plant_day</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Subarray map of next planting day.</p></li>
+<li><p><strong>crop</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Crops grown by each farmer.</p></li>
+<li><p><strong>field_indices_per_farmer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – This array contains the indices where the fields of a farmer are stored in <cite>field_indices</cite>.</p></li>
+<li><p><strong>field_indices</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – This array contains the indices of all fields, ordered by farmer. In other words, if a farmer owns multiple fields, the indices of the fields are indices.</p></li>
+<li><p><strong>planting_schemes</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – <p>A 6-dimensional array which contains the planing schemes.</p>
+<ol class="arabic simple">
+<li><p>Whether the crop is irrigated or not.</p></li>
+<li><p>The unit code for the crop.</p></li>
+<li><p>The crop.</p></li>
+<li><p>The planting scheme (e.g., single or double cropping).</p></li>
+<li><p>If multicropping, the various crop stages.</p></li>
+<li><p>The planting month and the harvest month.</p></li>
+</ol>
+</p></li>
+<li><p><strong>irrigating</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Whether each farmers irrigates or not (True is irrigating, False is not).</p></li>
+<li><p><strong>unit_code</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – The unit code of each farmer.</p></li>
+<li><p><strong>planting_scheme</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – The planting scheme for each farmer.</p></li>
+<li><p><strong>next_multicrop_index</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Subarray map of the next multicropping index.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>plant</strong> – Subarray map of what crops are plantn this day.</p></li>
+<li><p><strong>crop_harvest_age_days</strong> – Subarray map of the havest age in days.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.save_harvest">
+<span class="sig-name descname"><span class="pre">save_harvest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">harvesting_farmers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.save_harvest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.save_harvest" title="Permalink to this definition"></a></dt>
+<dd><p>Saves the current harvest for harvesting farmers in a 2-dimensional array. The first dimension is the different farmers, while the second dimension are the previous harvests. First the previous harvests are moved by 1 column (dropping old harvests when they don’t visit anymore) to make room for the new harvest. Then, the new harvest is placed in the array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>harvesting_farmers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – farmers that harvest in this timestep.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.start_day_per_month">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">start_day_per_month</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#agents.farmers.Farmers.start_day_per_month" title="Permalink to this definition"></a></dt>
+<dd><p>Get starting day for each month of year</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>starting_day_per_month</strong> – Starting day of each month of year.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.step" title="Permalink to this definition"></a></dt>
+<dd><p>This function is called at the beginning of each timestep. First, in the <cite>ngo_training</cite> scenario water efficiency knowledge diffuses through the farmer population. Only occurs each year on January 1st.</p>
+<p>Then, farmers harvest and plant crops.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.update_field_indices">
+<span class="sig-name descname"><span class="pre">update_field_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.update_field_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.update_field_indices" title="Permalink to this definition"></a></dt>
+<dd><p>Creates <cite>field_indices_per_farmer</cite> and <cite>field_indices</cite>. These indices are used to quickly find the fields for a specific farmer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="agents.farmers.Farmers.update_field_indices_numba">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update_field_indices_numba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">land_owners</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#Farmers.update_field_indices_numba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.Farmers.update_field_indices_numba" title="Permalink to this definition"></a></dt>
+<dd><p>Creates <cite>field_indices_per_farmer</cite> and <cite>field_indices</cite>. These indices are used to quickly find the fields for a specific farmer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>land_owners</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Array of the land owners. Each unique ID is a different land owner. -1 means the land is not owned by anyone.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>field_indices_per_farmer</strong> – This array contains the indices where the fields of a farmer are stored in <cite>field_indices</cite>.</p></li>
+<li><p><strong>field_indices</strong> – This array contains the indices of all fields, ordered by farmer. In other words, if a farmer owns multiple fields, the indices of the fields are indices.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="agents.farmers.get_farmer_fields">
+<span class="sig-name descname"><span class="pre">get_farmer_fields</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">field_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_indices_per_farmer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">farmer_index</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#get_farmer_fields"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.get_farmer_fields" title="Permalink to this definition"></a></dt>
+<dd><p>Gets indices of field for given farmer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>field_indices_per_farmer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – This array contains the indices where the fields of a farmer are stored in <cite>field_indices</cite>.</p></li>
+<li><p><strong>field_indices</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – This array contains the indices of all fields, ordered by farmer. In other words, if a farmer owns multiple fields, the indices of the fields are indices.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>field_indices_for_farmer</strong> – the indices of the fields for the given farmer.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="agents.farmers.is_currently_growing">
+<span class="sig-name descname"><span class="pre">is_currently_growing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plant_month</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">harvest_month</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_month</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_day_per_month</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/agents/farmers.html#is_currently_growing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#agents.farmers.is_currently_growing" title="Permalink to this definition"></a></dt>
+<dd><p>Checks whether a crop is currently growing based on the plant month, harvest month, and current model date. Used for initalization of the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>plant_month</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – month that the crop is planted.</p></li>
+<li><p><strong>harvest_month</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – month that the crop is harvested.</p></li>
+<li><p><strong>current_month</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Current month.</p></li>
+<li><p><strong>current_day</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Current day year.</p></li>
+<li><p><strong>start_day_per_month</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – 1d NumPy array with starting day per month [31, …, 31]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>crop_age_days</strong> – Crop age in days at current day. Returns -1 when crop is not currently growing.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="agents.farmers.random">
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">x</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">interval</span> <span class="pre">[0,</span> <span class="pre">1).</span></span></span><a class="headerlink" href="#agents.farmers.random" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="__init__.html" class="btn btn-neutral float-left" title="Agents" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ngo.html" class="btn btn-neutral float-right" title="NGO" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; <a href="../copyright.html">Copyright</a> 2022, IIASA and VU-IVM.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

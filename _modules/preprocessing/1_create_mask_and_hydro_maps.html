@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>preprocessing.1_create_mask_and_hydro_maps &mdash; GEB 0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="copyright" title="Copyright" href="../../copyright.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> GEB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../preprocessing/preprocessing.html">Preprocessing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../running.html">Running the model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../HRUs.html">Farm-level HRUs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Agents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/__init__.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/farmers.html">Farmers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/ngo.html">NGO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/government.html">Government</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cwatm_model.html">CWatM Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../report.html">Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../artists.html">Artists</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../authors_page.html">Authors</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GEB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>preprocessing.1_create_mask_and_hydro_maps</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for preprocessing.1_create_mask_and_hydro_maps</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">rasterio</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">honeybees.library.raster</span> <span class="kn">import</span> <span class="n">clip_to_xy_bounds</span><span class="p">,</span> <span class="n">clip_to_other</span><span class="p">,</span> <span class="n">upscale</span>
+<span class="kn">import</span> <span class="nn">rasterio</span>
+<span class="kn">from</span> <span class="nn">rasterio.features</span> <span class="kn">import</span> <span class="n">shapes</span>
+<span class="kn">from</span> <span class="nn">rasterio.merge</span> <span class="kn">import</span> <span class="n">merge</span>
+<span class="kn">import</span> <span class="nn">geopandas</span> <span class="k">as</span> <span class="nn">gpd</span>
+
+<span class="kn">from</span> <span class="nn">config</span> <span class="kn">import</span> <span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="n">INPUT</span>
+
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">)):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">))</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing&#39;</span><span class="p">,</span> <span class="s1">&#39;kinematic&#39;</span><span class="p">)):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing&#39;</span><span class="p">,</span> <span class="s1">&#39;kinematic&#39;</span><span class="p">))</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;landsurface&#39;</span><span class="p">,</span> <span class="s1">&#39;topo&#39;</span><span class="p">)):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;landsurface&#39;</span><span class="p">,</span> <span class="s1">&#39;topo&#39;</span><span class="p">))</span>
+
+    
+<div class="viewcode-block" id="create_mask"><a class="viewcode-back" href="../../preprocessing/1_create_mask_and_hydro_maps.html#preprocessing.1_create_mask_and_hydro_maps.create_mask">[docs]</a><span class="k">def</span> <span class="nf">create_mask</span><span class="p">(</span><span class="n">basin_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">upscale_factor</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">rasterio</span><span class="o">.</span><span class="n">profiles</span><span class="o">.</span><span class="n">Profile</span><span class="p">,</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">profiles</span><span class="o">.</span><span class="n">Profile</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;This function creates a mask and a submask (using global UPSCALE_FACTOR), and returns rasterio profile for both</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        basin_id: The basin id of the `merit_hydro_30sec/30sec_basids.tif`</span>
+<span class="sd">        upscale_factor: The size of the subcell mask relative to the basin mask.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        mask_profile: rasterio profile for mask</span>
+<span class="sd">        submask_profile: rasterio profile for submask</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mask_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="s1">&#39;mask.tif&#39;</span><span class="p">)</span>
+    <span class="n">submask_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="s1">&#39;submask.tif&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="s1">&#39;merit_hydro_30sec/30sec_basids.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+        <span class="n">basins</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">basins</span> <span class="o">!=</span> <span class="n">basin_id</span>  <span class="c1"># mask anything that is not basin id</span>
+
+        <span class="n">nonmaskedx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">=</span> <span class="n">nonmaskedx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nonmaskedx</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">nonmaskedy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">nonmaskedy</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nonmaskedy</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">mask_profile</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
+        <span class="n">mask_profile</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">clip_to_xy_bounds</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">mask_profile</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">)</span>
+        <span class="n">mask_profile</span><span class="p">[</span><span class="s1">&#39;nodata&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mask_fn</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">mask_profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">mask_clipped_src</span><span class="p">:</span>
+            <span class="n">mask_clipped_src</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">[</span><span class="s1">&#39;dtype&#39;</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">submask</span><span class="p">,</span> <span class="n">submask_profile</span> <span class="o">=</span> <span class="n">upscale</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">mask_profile</span><span class="p">,</span> <span class="n">upscale_factor</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">submask_fn</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">submask_profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">submask_clipped_src</span><span class="p">:</span>
+            <span class="n">submask_clipped_src</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">submask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">submask_profile</span><span class="p">[</span><span class="s1">&#39;dtype&#39;</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mask_profile</span><span class="p">,</span> <span class="n">submask_profile</span></div>
+
+
+<div class="viewcode-block" id="create_cell_area_map"><a class="viewcode-back" href="../../preprocessing/1_create_mask_and_hydro_maps.html#preprocessing.1_create_mask_and_hydro_maps.create_cell_area_map">[docs]</a><span class="k">def</span> <span class="nf">create_cell_area_map</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">:</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">profiles</span><span class="o">.</span><span class="n">Profile</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Create cell area map for given rasterio profile. </span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        mask_profile: Rasterio profile of basin mask</span>
+<span class="sd">        prefix: Filename prefix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cell_area_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s1">cell_area.tif&#39;</span><span class="p">)</span>
+    <span class="n">RADIUS_EARTH_EQUATOR</span> <span class="o">=</span> <span class="mi">40075017</span>  <span class="c1"># m</span>
+    <span class="n">distance_1_degree_latitude</span> <span class="o">=</span> <span class="n">RADIUS_EARTH_EQUATOR</span> <span class="o">/</span> <span class="mi">360</span>
+
+    <span class="n">profile</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">)</span>
+
+    <span class="n">affine</span> <span class="o">=</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;transform&#39;</span><span class="p">]</span>
+
+    <span class="n">lat_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;width&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;height&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;width&#39;</span><span class="p">],</span> <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;height&#39;</span><span class="p">]))</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="p">(</span><span class="n">lat_idx</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">affine</span><span class="o">.</span><span class="n">e</span> <span class="o">+</span> <span class="n">affine</span><span class="o">.</span><span class="n">f</span>
+    <span class="n">width_m</span> <span class="o">=</span> <span class="n">distance_1_degree_latitude</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">lat</span><span class="p">))</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">affine</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">height_m</span> <span class="o">=</span> <span class="n">distance_1_degree_latitude</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">affine</span><span class="o">.</span><span class="n">e</span><span class="p">)</span>
+
+    <span class="n">area_m</span> <span class="o">=</span> <span class="n">width_m</span> <span class="o">*</span> <span class="n">height_m</span>
+
+    <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;dtype&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">cell_area_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">cell_area_dst</span><span class="p">:</span>
+        <span class="n">cell_area_dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">area_m</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="create_ldd"><a class="viewcode-back" href="../../preprocessing/1_create_mask_and_hydro_maps.html#preprocessing.1_create_mask_and_hydro_maps.create_ldd">[docs]</a><span class="k">def</span> <span class="nf">create_ldd</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">:</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">profiles</span><span class="o">.</span><span class="n">Profile</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Clip ldd, and convert ArcGIS D8 convention to pcraster LDD convention. </span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        mask_profile: Rasterio profile of basin mask</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">output_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing/kinematic/ldd.tif&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="s1">&#39;merit_hydro_30sec/30sec_flwdir.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+        <span class="n">dir_map</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">src_profile</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
+
+        <span class="n">dir_map</span><span class="p">,</span> <span class="n">profile</span> <span class="o">=</span> <span class="n">clip_to_other</span><span class="p">(</span><span class="n">dir_map</span><span class="p">,</span> <span class="n">src_profile</span><span class="p">,</span> <span class="n">mask_profile</span><span class="p">)</span>
+
+        <span class="n">ldd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dir_map</span><span class="p">)</span>
+        <span class="n">ldd</span><span class="p">[</span><span class="n">dir_map</span> <span class="o">==</span> <span class="mi">32</span><span class="p">]</span> <span class="o">=</span> <span class="mi">7</span>
+        <span class="n">ldd</span><span class="p">[</span><span class="n">dir_map</span> <span class="o">==</span> <span class="mi">64</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span>
+        <span class="n">ldd</span><span class="p">[</span><span class="n">dir_map</span> <span class="o">==</span> <span class="mi">128</span><span class="p">]</span> <span class="o">=</span> <span class="mi">9</span>
+        <span class="n">ldd</span><span class="p">[</span><span class="n">dir_map</span> <span class="o">==</span> <span class="mi">16</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="n">ldd</span><span class="p">[</span><span class="n">dir_map</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">ldd</span><span class="p">[</span><span class="n">dir_map</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">6</span>
+        <span class="n">ldd</span><span class="p">[</span><span class="n">dir_map</span> <span class="o">==</span> <span class="mi">8</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">ldd</span><span class="p">[</span><span class="n">dir_map</span> <span class="o">==</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">ldd</span><span class="p">[</span><span class="n">dir_map</span> <span class="o">==</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
+        
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_fn</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+            <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ldd</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_channel_manning_and_width"><a class="viewcode-back" href="../../preprocessing/1_create_mask_and_hydro_maps.html#preprocessing.1_create_mask_and_hydro_maps.get_channel_manning_and_width">[docs]</a><span class="k">def</span> <span class="nf">get_channel_manning_and_width</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">:</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">profiles</span><span class="o">.</span><span class="n">Profile</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Estimate channel Manning&#39;s roughness coefficient, and channel width. </span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        mask_profile: Rasterio profile of basin mask</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="s1">&#39;merit_hydro_30sec/30sec_elevtn.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">DEM_src</span><span class="p">:</span>
+        <span class="n">DEM</span> <span class="o">=</span> <span class="n">DEM_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">DEM</span><span class="p">,</span> <span class="n">DEM_profile</span> <span class="o">=</span> <span class="n">clip_to_other</span><span class="p">(</span><span class="n">DEM</span><span class="p">,</span> <span class="n">DEM_src</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="n">mask_profile</span><span class="p">)</span>
+    
+    <span class="n">cell_area_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="s1">&#39;cell_area.tif&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">cell_area_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cell_area_src</span><span class="p">:</span>
+        <span class="n">area_m</span> <span class="o">=</span> <span class="n">cell_area_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="s1">&#39;merit_hydro_30sec/30sec_uparea.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">uparea_src</span><span class="p">:</span>
+        <span class="n">upstream_area</span> <span class="o">=</span> <span class="n">uparea_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1">#* 1e6  # km2 to m2</span>
+        <span class="n">upstream_area</span><span class="p">,</span> <span class="n">upstream_profile</span> <span class="o">=</span> <span class="n">clip_to_other</span><span class="p">(</span><span class="n">upstream_area</span><span class="p">,</span> <span class="n">uparea_src</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="n">mask_profile</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing/kinematic/upstream_area.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">upstream_profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">upstream_dst</span><span class="p">:</span>
+            <span class="n">upstream_dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">upstream_area</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">area_m</span><span class="p">)</span> <span class="o">/</span> <span class="n">upstream_area</span>
+    <span class="n">a</span><span class="p">[</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">DEM</span> <span class="o">/</span> <span class="mi">2000</span>
+    <span class="n">b</span><span class="p">[</span><span class="n">b</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">manning</span> <span class="o">=</span> <span class="mf">0.025</span> <span class="o">+</span> <span class="mf">0.015</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="mf">0.030</span> <span class="o">*</span> <span class="n">b</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing/kinematic/manning.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">DEM_profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">manning_dst</span><span class="p">:</span>
+        <span class="n">manning_dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">manning</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">chanwidth</span> <span class="o">=</span> <span class="n">upstream_area</span> <span class="o">/</span> <span class="mf">500.</span>
+    <span class="n">chanwidth</span><span class="p">[</span><span class="n">chanwidth</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing/kinematic/chanwidth.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">DEM_profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">chanwidth_dst</span><span class="p">:</span>
+        <span class="n">chanwidth_dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chanwidth</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">upstream_area_no_negative</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">upstream_area</span><span class="p">)</span>
+    <span class="n">upstream_area_no_negative</span><span class="p">[</span><span class="n">upstream_area_no_negative</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">channel_bankfull</span> <span class="o">=</span> <span class="mf">0.27</span> <span class="o">*</span> <span class="n">upstream_area_no_negative</span> <span class="o">**</span> <span class="mf">0.26</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing/kinematic/chandepth.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">DEM_profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">channel_bankfull_dst</span><span class="p">:</span>
+        <span class="n">channel_bankfull_dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">channel_bankfull</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_river_length_and_channelratio"><a class="viewcode-back" href="../../preprocessing/1_create_mask_and_hydro_maps.html#preprocessing.1_create_mask_and_hydro_maps.get_river_length_and_channelratio">[docs]</a><span class="k">def</span> <span class="nf">get_river_length_and_channelratio</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">:</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">profiles</span><span class="o">.</span><span class="n">Profile</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Clips channel length to mask, and calculates channel ratio from cell area, channel length and channel width</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        mask_profile: Rasterio profile of basin mask</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="s1">&#39;merit_hydro_30sec/30sec_rivlen_ds.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rivlen_src</span><span class="p">:</span>
+        <span class="n">rivlen</span> <span class="o">=</span> <span class="n">rivlen_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">rivlen</span><span class="p">,</span> <span class="n">profile</span> <span class="o">=</span> <span class="n">clip_to_other</span><span class="p">(</span><span class="n">rivlen</span><span class="p">,</span> <span class="n">rivlen_src</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="n">mask_profile</span><span class="p">)</span>
+        <span class="n">rivlen</span><span class="p">[</span><span class="n">rivlen</span> <span class="o">==</span> <span class="o">-</span><span class="mi">9999</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing/kinematic/chanleng.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">chanleng_dst</span><span class="p">:</span>
+            <span class="n">chanleng_dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">rivlen</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="s1">&#39;cell_area.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cell_area_src</span><span class="p">:</span>
+            <span class="n">cell_area</span> <span class="o">=</span> <span class="n">cell_area_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing/kinematic/chanwidth.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">chanwidth_src</span><span class="p">:</span>
+            <span class="n">chanwidth</span> <span class="o">=</span> <span class="n">chanwidth_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="n">rivlen</span><span class="p">[</span><span class="n">rivlen</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">river_area</span> <span class="o">=</span> <span class="n">chanwidth</span> <span class="o">*</span> <span class="n">rivlen</span>
+        <span class="n">river_ratio</span> <span class="o">=</span> <span class="n">river_area</span> <span class="o">/</span> <span class="n">cell_area</span>
+        <span class="n">river_ratio</span><span class="p">[</span><span class="n">river_ratio</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="n">river_ratio</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing/kinematic/chanratio.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">river_ratio_dst</span><span class="p">:</span>
+            <span class="n">river_ratio_dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">river_ratio</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_river_slope"><a class="viewcode-back" href="../../preprocessing/1_create_mask_and_hydro_maps.html#preprocessing.1_create_mask_and_hydro_maps.get_river_slope">[docs]</a><span class="k">def</span> <span class="nf">get_river_slope</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">:</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">profiles</span><span class="o">.</span><span class="n">Profile</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Clips riverslope map to mask, and outputs as channelgradient</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        mask_profile: Rasterio profile of basin mask</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="s1">&#39;merit_hydro_30sec/30sec_rivslp.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rivslp_src</span><span class="p">:</span>
+        <span class="n">rivslp</span> <span class="o">=</span> <span class="n">rivslp_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">rivslp</span><span class="p">,</span> <span class="n">profile</span> <span class="o">=</span> <span class="n">clip_to_other</span><span class="p">(</span><span class="n">rivslp</span><span class="p">,</span> <span class="n">rivslp_src</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="n">mask_profile</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;routing/kinematic/changrad.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">chanslp_dst</span><span class="p">:</span>
+            <span class="n">chanslp_dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">rivslp</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_elevation_std"><a class="viewcode-back" href="../../preprocessing/1_create_mask_and_hydro_maps.html#preprocessing.1_create_mask_and_hydro_maps.get_elevation_std">[docs]</a><span class="k">def</span> <span class="nf">get_elevation_std</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">:</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">profiles</span><span class="o">.</span><span class="n">Profile</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Clips 30 arcsecond elevation map to mask, and creates map of standard deviation in elevation map using the 3 arcsecond elevation map.</span>
+
+<span class="sd">    All MERIT Hydro elevation files should be in `ROOT/original_data/merit_hydro_03sec`.</span>
+<span class="sd">    </span>
+<span class="sd">        Args:</span>
+<span class="sd">            mask_profile: Rasterio profile of basin mask</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="s1">&#39;merit_hydro_30sec/30sec_elevtn.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">DEM_src</span><span class="p">:</span>
+        <span class="n">DEM_profile</span> <span class="o">=</span> <span class="n">DEM_src</span><span class="o">.</span><span class="n">profile</span>
+        <span class="n">DEM</span> <span class="o">=</span> <span class="n">DEM_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">merit_hydro_03sec_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ORIGINAL_DATA</span><span class="p">,</span> <span class="s1">&#39;merit_hydro_03sec&#39;</span><span class="p">)</span>
+    <span class="n">elv_maps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">merit_hydro_03sec_folder</span><span class="p">):</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">merit_hydro_03sec_folder</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">fp</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;_elv&#39;</span><span class="p">):</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+            <span class="n">High_res_DEM_profile_org</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
+            <span class="n">elv_maps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fp</span><span class="p">))</span>
+    
+    <span class="n">High_res_DEM</span><span class="p">,</span> <span class="n">High_res_DEM_transform_org</span> <span class="o">=</span> <span class="n">merge</span><span class="p">(</span><span class="n">elv_maps</span><span class="p">)</span>
+    <span class="n">High_res_DEM</span> <span class="o">=</span> <span class="n">High_res_DEM</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">High_res_DEM_profile_org</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+        <span class="s1">&#39;transform&#39;</span><span class="p">:</span> <span class="n">High_res_DEM_transform_org</span><span class="p">,</span>
+        <span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="n">High_res_DEM</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="n">High_res_DEM</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="p">})</span>
+
+    <span class="n">scaling</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">DEM</span><span class="p">,</span> <span class="n">DEM_profile</span> <span class="o">=</span> <span class="n">clip_to_other</span><span class="p">(</span><span class="n">DEM</span><span class="p">,</span> <span class="n">DEM_profile</span><span class="p">,</span> <span class="n">mask_profile</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">high_res_dem_profile_target</span> <span class="o">=</span> <span class="n">upscale</span><span class="p">(</span><span class="n">DEM</span><span class="p">,</span> <span class="n">mask_profile</span><span class="p">,</span> <span class="n">scaling</span><span class="p">)</span>
+    <span class="n">High_res_DEM</span><span class="p">,</span> <span class="n">High_res_DEM_profile</span> <span class="o">=</span> <span class="n">clip_to_other</span><span class="p">(</span><span class="n">High_res_DEM</span><span class="p">,</span> <span class="n">High_res_DEM_profile_org</span><span class="p">,</span> <span class="n">high_res_dem_profile_target</span><span class="p">)</span>
+    <span class="n">High_res_DEM</span><span class="p">[</span><span class="n">High_res_DEM</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;landsurface/topo/subelv.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">High_res_DEM_profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+        <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">High_res_DEM</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    
+    <span class="n">elevation_per_cell</span> <span class="o">=</span> <span class="p">(</span><span class="n">High_res_DEM</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">High_res_DEM</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">scaling</span><span class="p">)</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">scaling</span><span class="p">))</span>
+    <span class="n">elevationSTD</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">elevation_per_cell</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">DEM</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;landsurface/topo/elvstd.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">DEM_profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+        <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">elevationSTD</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="create_mask_shapefile"><a class="viewcode-back" href="../../preprocessing/1_create_mask_and_hydro_maps.html#preprocessing.1_create_mask_and_hydro_maps.create_mask_shapefile">[docs]</a><span class="k">def</span> <span class="nf">create_mask_shapefile</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Creates a shapefile from the basin mask.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mask_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="s1">&#39;mask.tif&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mask_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+        <span class="n">transform</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">transform</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">profile</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
+        <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;nodata&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="n">geoms</span> <span class="o">=</span> <span class="nb">list</span><span class="p">({</span><span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="n">geom</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;properties&#39;</span><span class="p">:</span> <span class="p">{}}</span> <span class="k">for</span> <span class="n">geom</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span> <span class="k">if</span> <span class="n">geom</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="o">.</span><span class="n">from_features</span><span class="p">(</span><span class="n">geoms</span><span class="p">)</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Invalid polygons are sometimes returned. Buffer(0) helps solve this issue.</span>
+    <span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">set_crs</span><span class="p">(</span><span class="s2">&quot;EPSG:4326&quot;</span><span class="p">)</span>
+    <span class="n">gdf</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">mask_file</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.tif&#39;</span><span class="p">,</span> <span class="s1">&#39;.shp&#39;</span><span class="p">))</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">UPSCALE_FACTOR</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">mask_profile</span><span class="p">,</span> <span class="n">submask_profile</span> <span class="o">=</span> <span class="n">create_mask</span><span class="p">(</span><span class="mi">450000005</span><span class="p">,</span> <span class="n">UPSCALE_FACTOR</span><span class="p">)</span>
+    <span class="n">create_mask_shapefile</span><span class="p">()</span>
+    <span class="n">create_cell_area_map</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">)</span>
+    <span class="n">create_cell_area_map</span><span class="p">(</span><span class="n">submask_profile</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s1">&#39;sub_&#39;</span><span class="p">)</span>
+    <span class="n">create_ldd</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">)</span>
+    <span class="n">get_channel_manning_and_width</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">)</span>
+    <span class="n">get_river_length_and_channelratio</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">)</span>
+    <span class="n">get_river_slope</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">)</span>
+    <span class="n">get_elevation_std</span><span class="p">(</span><span class="n">mask_profile</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; <a href="../../copyright.html">Copyright</a> 2022, IIASA and VU-IVM.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

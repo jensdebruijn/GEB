@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9. Pick farmer crops &mdash; GEB 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" />
+    <link rel="next" title="10. Preprocess MODFLOW data" href="10_preprocess_modflow.html" />
+    <link rel="prev" title="8. Create farmers" href="8_create_farmers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> GEB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="preprocessing.html">Preprocessing</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="1_create_mask_and_hydro_maps.html">1. Create mask and hydro maps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2_scale_cwatm.html">2. Scale CWatM input data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="3_scrape_command_areas.html">3. Scrape command areas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="4_create_lakes_and_reservoirs.html">4. Create land and reservoir map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="5_create_land_use_map.html">5. Create land use map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="6_get_farm_sizes.html">6. Create farm size map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="7_get_irrigation_source.html">7. Get irrigation sources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="8_create_farmers.html">8. Create farmers</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">9. Pick farmer crops</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mirca2000">MIRCA2000</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#irrigated-land">Irrigated land</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="10_preprocess_modflow.html">10. Preprocess MODFLOW data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="11_other_data.html">11. Other data</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../running.html">Running the model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../HRUs.html">Farm-level HRUs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Agents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../agents/__init__.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/farmers.html">Farmers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/ngo.html">NGO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/government.html">Government</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cwatm_model.html">CWatM Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../report.html">Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../artists.html">Artists</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../authors_page.html">Authors</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GEB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="preprocessing.html">Preprocessing</a> &raquo;</li>
+      <li><span class="section-number">9. </span>Pick farmer crops</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/preprocessing/9_pick_farmer_crops.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="pick-farmer-crops">
+<h1><span class="section-number">9. </span>Pick farmer crops<a class="headerlink" href="#pick-farmer-crops" title="Permalink to this heading"></a></h1>
+<p><cite>preprocessing.4_create_lakes_and_reservoirs</cite> assigns a crop type, irrigation type and planting scheme to each farmer using to the MIRCA2000 dataset. We condider specified crops, growing area, and various planting schemes (e.g., single, double-cropping). But before running the file, we need to obtain MIRCA2000 input data and irrigated areas as described below.</p>
+<section id="mirca2000">
+<h2>MIRCA2000<a class="headerlink" href="#mirca2000" title="Permalink to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Download the <cite>Monthly Growing Area Grids</cite> from the <a class="reference external" href="https://www.uni-frankfurt.de/45218031/data_download">Goethe-universität</a> and place in <cite>ROOT/original_data/MIRCA2000/MGAG</cite>.</p></li>
+<li><p>Decompress the data.</p></li>
+<li><p>Also download <cite>flt_to_asc.exe</cite> from the same page.</p></li>
+<li><p>Convert the flt-files to asc-files using the exe-file. A batch script for convenience is provided in <cite>prepare_input_data/MIRCA2000</cite>.</p></li>
+<li><p>Create netcdf-files (also created in <cite>ROOT/original_data/MIRCA2000/monthly_growing_areas</cite>) by running <cite>prepare_input_data/MIRCA2000/asc_to_netcdf.py</cite>.</p></li>
+<li><p>Download the <cite>Condensed Crop Calendars</cite> for both irrigated and rainfed crops, decompress, and place in <cite>ROOT/original_data/MIRCA2000</cite>.</p></li>
+<li><p>Download the <cite>Calendar units</cite>, decompress, and place in <cite>ROOT/original_data/MIRCA2000</cite>.</p></li>
+</ol>
+</section>
+<section id="irrigated-land">
+<h2>Irrigated land<a class="headerlink" href="#irrigated-land" title="Permalink to this heading"></a></h2>
+<p>You can download the irrigated areas from <a class="reference external" href="https://www.nature.com/articles/sdata2016118">Scientific Data</a>, and place it in <cite>ROOT/original_data/india_irrigated_land</cite>.</p>
+<span class="target" id="module-preprocessing.9_pick_farmer_crops"></span><dl class="py function">
+<dt class="sig sig-object py" id="preprocessing.9_pick_farmer_crops.get_crop_and_irrigation_per_farmer">
+<span class="sig-name descname"><span class="pre">get_crop_and_irrigation_per_farmer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crop_calendar</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_unit_codes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/9_pick_farmer_crops.html#get_crop_and_irrigation_per_farmer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.9_pick_farmer_crops.get_crop_and_irrigation_per_farmer" title="Permalink to this definition"></a></dt>
+<dd><p>Function to get crop type, irrigation type and MIRCA2000 unit code for each farmer. First, the farmer locations are loaded (as previously generated), then a map of farmer irrigation is loaded to retrieve irrigating farmers. Next, the MIRCA2000 unit codes for each farmer are retrieved. Subsequently, MIRCA2000 crop data is read and linearly interpolated to support the higher resolution grid of the model. Using the farmer locations, a crop is then randomly chosen for each farmer while considering the probablity that a certain crop is growing in that space according to the MIRCA2000 specification. Crop choice, irrigation type and unit codes per farmer are saved to the disk in NumPy arrays.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>crop_calendar</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>) – Dictionary of crop calendars for set of attributes.</p></li>
+<li><p><strong>map_unit_codes</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Array of reduced unit codes for study area.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>crop_per_farmer</strong> – Chosen crop code per farmer.</p></li>
+<li><p><strong>irrigating_farmers</strong> – Array with whether farmer is irrigating or not (Irrigating == True).</p></li>
+<li><p><strong>farmer_unit_codes</strong> – Reduced MIRCA2000 unit code per farmer.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="preprocessing.9_pick_farmer_crops.get_crop_calendar">
+<span class="sig-name descname"><span class="pre">get_crop_calendar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">unit_codes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/9_pick_farmer_crops.html#get_crop_calendar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.9_pick_farmer_crops.get_crop_calendar" title="Permalink to this definition"></a></dt>
+<dd><p>This function parses MIRCA2000 crop calanders from downloaded format to a convenient dictionary. In addition, the unit code map will be mapped to lower values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>unit_codes</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Array of unit codes for study area.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>crop_calendar</strong> – Dictionary of crop calendars for set of attributes.</p></li>
+<li><p><strong>map_unit_codes</strong> – Array of reduced unit codes for study area.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="preprocessing.9_pick_farmer_crops.get_planting_schemes">
+<span class="sig-name descname"><span class="pre">get_planting_schemes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crop_calendars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_per_farmer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">farmer_unit_codes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/9_pick_farmer_crops.html#get_planting_schemes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.9_pick_farmer_crops.get_planting_schemes" title="Permalink to this definition"></a></dt>
+<dd><p>Multiple planting schemes (e.g., single, multi-cropping) exist for some crops in MIRCA2000. This function is used to create the cropping options. Results are saved as a 6-dimensional NumPy arrays, specifying all the different options. While not very easy to work with, it allows the model to be much better than for example with a JSON-file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>crop_calendars</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>) – Dictionary of crop calendars for set of attributes.</p></li>
+<li><p><strong>crop_per_farmer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Chosen crop code per farmer.</p></li>
+<li><p><strong>farmer_unit_codes</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Reduced MIRCA2000 unit code per farmer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>planting_schemes</strong> – A 6-dimensional array which contains the planing schemes.
+1. Whether the crop is irrigated or not.
+2. The unit code for the crop.
+3. The crop.
+4. The planting scheme (e.g., single or double cropping).
+5. If multicropping, the various crop stages.
+6. The planting month and the harvest month.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="preprocessing.9_pick_farmer_crops.get_range_months">
+<span class="sig-name descname"><span class="pre">get_range_months</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">potential_crops</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/9_pick_farmer_crops.html#get_range_months"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.9_pick_farmer_crops.get_range_months" title="Permalink to this definition"></a></dt>
+<dd><p>Gets growing months for list of crops.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>potential_crops</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]) – List of crops, specifying start and end of growing period in dict as follows: [{‘start’: …, ‘end’: …}, …, {…}]</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>growth_range_months</strong> – List of crops (same as function input) and their growing months as a set.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">set</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="preprocessing.9_pick_farmer_crops.is_groundwater_irrigating">
+<span class="sig-name descname"><span class="pre">is_groundwater_irrigating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">irrigating_farmers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groundwater_irrigation_probabilities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">farms_size_ha</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/9_pick_farmer_crops.html#is_groundwater_irrigating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.9_pick_farmer_crops.is_groundwater_irrigating" title="Permalink to this definition"></a></dt>
+<dd><p>Below 0.5
+0.5-1.0
+1.0-2.0
+2.0-3.0
+3.0-4.0
+4.0-5.0
+5.0-7.5
+7.5-10.0
+10.0-20.0
+20.0 &amp; ABOVE</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="preprocessing.9_pick_farmer_crops.overlap">
+<span class="sig-name descname"><span class="pre">overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/9_pick_farmer_crops.html#overlap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.9_pick_farmer_crops.overlap" title="Permalink to this definition"></a></dt>
+<dd><p>Check whether 2 sets overlap. Used to check whether 2 crops overlap in growth period.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r1</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]) – Set of growing months for first crop.</p></li>
+<li><p><strong>r2</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">set</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]) – Set of growing months for second crop.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>overlap</strong> – True if crop growth periods overlap, False otherwise.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="preprocessing.9_pick_farmer_crops.pick_planting_scheme">
+<span class="sig-name descname"><span class="pre">pick_planting_scheme</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">planting_schemes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">irrigating_farmers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_per_farmer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">farmer_unit_codes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/9_pick_farmer_crops.html#pick_planting_scheme"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.9_pick_farmer_crops.pick_planting_scheme" title="Permalink to this definition"></a></dt>
+<dd><p>Here the farmers pick one of the planting schemes relative to the growing area of their crop and irrigation type in the area. Saves the planting scheme to a numpy-array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>planting_schemes</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – A 6-dimensional array which contains the planing schemes.
+1. Whether the crop is irrigated or not.
+2. The unit code for the crop.
+3. The crop.
+4. The planting scheme (e.g., single or double cropping).
+5. If multicropping, the various crop stages.
+6. The planting month and the harvest month.</p></li>
+<li><p><strong>irrigating_farmers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Array with whether farmer is irrigating or not (Irrigating == True).</p></li>
+<li><p><strong>crop_per_farmer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>) – Chosen crop code per farmer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="8_create_farmers.html" class="btn btn-neutral float-left" title="8. Create farmers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="10_preprocess_modflow.html" class="btn btn-neutral float-right" title="10. Preprocess MODFLOW data" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; <a href="../copyright.html">Copyright</a> 2022, IIASA and VU-IVM.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

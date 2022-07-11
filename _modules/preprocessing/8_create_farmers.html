@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>preprocessing.8_create_farmers &mdash; GEB 0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="copyright" title="Copyright" href="../../copyright.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> GEB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../preprocessing/preprocessing.html">Preprocessing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../running.html">Running the model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../HRUs.html">Farm-level HRUs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Agents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/__init__.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/farmers.html">Farmers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/ngo.html">NGO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/government.html">Government</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cwatm_model.html">CWatM Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../report.html">Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../artists.html">Artists</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../authors_page.html">Authors</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GEB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>preprocessing.8_create_farmers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for preprocessing.8_create_farmers</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">from</span> <span class="nn">honeybees.library.raster</span> <span class="kn">import</span> <span class="n">pixel_to_coord</span>
+<span class="kn">import</span> <span class="nn">rasterio</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">njit</span>
+<span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">random</span>
+
+<span class="kn">from</span> <span class="nn">config</span> <span class="kn">import</span> <span class="n">INPUT</span>
+
+<span class="kn">import</span> <span class="nn">faulthandler</span>
+<span class="n">faulthandler</span><span class="o">.</span><span class="n">enable</span><span class="p">()</span>
+
+<div class="viewcode-block" id="create_farms"><a class="viewcode-back" href="../../preprocessing/8_create_farmers.html#preprocessing.8_create_farmers.create_farms">[docs]</a><span class="nd">@njit</span>
+<span class="k">def</span> <span class="nf">create_farms</span><span class="p">(</span><span class="n">cultivated_land</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">gt</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">farm_size_probabilities</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">farm_size_choices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">cell_area</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates random farms considering the farm size distribution.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        cultivated_land: map of cultivated land.</span>
+<span class="sd">        gt: geotransformation of cultivated land map.</span>
+<span class="sd">        farm_size_probabilities: map of the probabilities for the various farm sizes to exist in a specific cell.</span>
+<span class="sd">        farm_size_choices: Lower and upper bound of the farm size correlating to the farm size probabilities. First dimension must be equal to number of layers of farm_size_probabilities. Size of the second dimension is 2, to represent the lower and upper bound.</span>
+<span class="sd">        cell_area: map of cell areas for all cells.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        farms: map of farms. Each unique ID is land owned by a single farmer. Non-cultivated land is represented by -1.</span>
+<span class="sd">        farmer_locs: 2 dimensional numpy array of farmer locations. First dimension corresponds to the IDs of `farms`, and the second dimension are longitude and latitude.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">farm_size_choices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="k">assert</span> <span class="n">farm_size_choices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">farm_size_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">cultivated_land</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">farm_size_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">cultivated_land</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">farm_size_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+   
+    <span class="n">cur_farm_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">farms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cultivated_land</span> <span class="o">==</span> <span class="kc">True</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># pre-allocate an array of size 1000. This array is later expanded when more farms are created.</span>
+    <span class="n">farmer_locs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">farmer_locs_length</span> <span class="o">=</span> <span class="n">farmer_locs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">ysize</span><span class="p">,</span> <span class="n">xsize</span> <span class="o">=</span> <span class="n">farms</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">farms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">farms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">farms</span><span class="p">[</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">f</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                
+                <span class="n">farm_size_probabilities_cell</span> <span class="o">=</span> <span class="n">farm_size_probabilities</span><span class="p">[:,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span>
+                <span class="n">max_farm_size_range</span> <span class="o">=</span> <span class="n">farm_size_choices</span><span class="p">[(</span><span class="n">farm_size_probabilities_cell</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">())</span><span class="o">.</span><span class="n">argmax</span><span class="p">()]</span>
+                <span class="n">max_farm_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">max_farm_size_range</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">max_farm_size_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])))</span>
+                
+                <span class="n">cur_farm_size</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">cur_farm_pixel_count</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">farm_done</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="mf">1e6</span><span class="p">,</span> <span class="o">-</span><span class="mf">1e6</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">,</span> <span class="o">-</span><span class="mf">1e6</span>
+                <span class="n">xlow</span><span class="p">,</span> <span class="n">xhigh</span><span class="p">,</span> <span class="n">ylow</span><span class="p">,</span> <span class="n">yhigh</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y</span><span class="o">+</span><span class="mi">1</span>
+
+                <span class="n">xsearch</span><span class="p">,</span> <span class="n">ysearch</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+                
+                <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">farms</span><span class="p">[</span><span class="n">ylow</span><span class="p">:</span><span class="n">yhigh</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">ysearch</span><span class="p">,</span> <span class="n">xlow</span><span class="p">:</span><span class="n">xhigh</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">xsearch</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                        <span class="k">break</span>
+
+                    <span class="k">for</span> <span class="n">yf</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ylow</span><span class="p">,</span> <span class="n">yhigh</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">xf</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">xlow</span><span class="p">,</span> <span class="n">xhigh</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="n">xf</span> <span class="o">&lt;</span> <span class="n">xsize</span> <span class="ow">and</span> <span class="n">yf</span> <span class="o">&lt;</span> <span class="n">ysize</span> <span class="ow">and</span> <span class="n">farms</span><span class="p">[</span><span class="n">yf</span><span class="p">,</span> <span class="n">xf</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="n">xf</span> <span class="o">&gt;</span> <span class="n">xmax</span><span class="p">:</span>
+                                    <span class="n">xmax</span> <span class="o">=</span> <span class="n">xf</span>
+                                <span class="k">if</span> <span class="n">xf</span> <span class="o">&lt;</span> <span class="n">xmin</span><span class="p">:</span>
+                                    <span class="n">xmin</span> <span class="o">=</span> <span class="n">xf</span>
+                                <span class="k">if</span> <span class="n">yf</span> <span class="o">&gt;</span> <span class="n">ymax</span><span class="p">:</span>
+                                    <span class="n">ymax</span> <span class="o">=</span> <span class="n">yf</span>
+                                <span class="k">if</span> <span class="n">yf</span> <span class="o">&lt;</span> <span class="n">ymin</span><span class="p">:</span>
+                                    <span class="n">ymin</span> <span class="o">=</span> <span class="n">yf</span>
+                                <span class="n">farms</span><span class="p">[</span><span class="n">yf</span><span class="p">,</span> <span class="n">xf</span><span class="p">]</span> <span class="o">=</span> <span class="n">cur_farm_count</span>
+                                <span class="n">cur_farm_size</span> <span class="o">+=</span> <span class="n">cell_area</span><span class="p">[</span><span class="n">yf</span><span class="p">,</span> <span class="n">xf</span><span class="p">]</span>
+                                <span class="n">cur_farm_pixel_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                                <span class="k">if</span> <span class="n">cur_farm_size</span> <span class="o">&gt;=</span> <span class="n">max_farm_size</span><span class="p">:</span>
+                                    <span class="n">farm_done</span> <span class="o">=</span> <span class="kc">True</span>
+                                    <span class="k">break</span>
+                        
+                        <span class="k">if</span> <span class="n">farm_done</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                            <span class="k">break</span>
+
+                    <span class="k">if</span> <span class="n">farm_done</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                        <span class="k">break</span>
+
+                    <span class="k">if</span> <span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">:</span>
+                        <span class="n">ylow</span> <span class="o">-=</span><span class="mi">1</span>
+                        <span class="n">ysearch</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">yhigh</span> <span class="o">+=</span><span class="mi">1</span>
+                        <span class="n">ysearch</span> <span class="o">=</span> <span class="mi">0</span>
+
+                    <span class="k">if</span> <span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">:</span>
+                        <span class="n">xlow</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">xsearch</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">xhigh</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="n">xsearch</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="n">px</span><span class="p">,</span> <span class="n">py</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">xmin</span> <span class="o">+</span> <span class="n">xmax</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="nb">int</span><span class="p">((</span><span class="n">ymin</span> <span class="o">+</span> <span class="n">ymax</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="n">lon_min</span><span class="p">,</span> <span class="n">lat_max</span> <span class="o">=</span> <span class="n">pixel_to_coord</span><span class="p">(</span><span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">,</span> <span class="n">gt</span><span class="p">)</span>
+                <span class="n">lon_max</span><span class="p">,</span> <span class="n">lat_min</span> <span class="o">=</span> <span class="n">pixel_to_coord</span><span class="p">(</span><span class="n">px</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">py</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">gt</span><span class="p">)</span>
+                <span class="n">farmer_locs</span><span class="p">[</span><span class="n">cur_farm_count</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">lon_min</span><span class="p">,</span> <span class="n">lon_max</span><span class="p">)</span>
+                <span class="n">farmer_locs</span><span class="p">[</span><span class="n">cur_farm_count</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">lat_min</span><span class="p">,</span> <span class="n">lat_max</span><span class="p">)</span>
+                
+
+                <span class="n">cur_farm_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="c1"># procedure to increase the size of the pre-alloated farmer_locs array</span>
+                <span class="k">if</span> <span class="n">cur_farm_count</span> <span class="o">&gt;=</span> <span class="n">farmer_locs_length</span><span class="p">:</span>
+                    <span class="n">farmer_locs_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">int</span><span class="p">(</span><span class="n">farmer_locs_length</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># increase size by 50%</span>
+                    <span class="n">farmer_locs_new</span><span class="p">[:</span><span class="n">farmer_locs_length</span><span class="p">]</span> <span class="o">=</span> <span class="n">farmer_locs</span>
+                    <span class="n">farmer_locs_length</span> <span class="o">=</span> <span class="n">farmer_locs_new</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">farmer_locs</span> <span class="o">=</span> <span class="n">farmer_locs_new</span>
+
+    <span class="n">farmer_locs</span> <span class="o">=</span> <span class="n">farmer_locs</span><span class="p">[:</span><span class="n">cur_farm_count</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">farms</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">farms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">farms</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">farms</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">farms</span><span class="p">,</span> <span class="n">farmer_locs</span></div>
+
+<div class="viewcode-block" id="create_farmers"><a class="viewcode-back" href="../../preprocessing/8_create_farmers.html#preprocessing.8_create_farmers.create_farmers">[docs]</a><span class="k">def</span> <span class="nf">create_farmers</span><span class="p">(</span><span class="n">farm_size_probabilities</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">farm_size_choices_m2</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes as input an map of farm sizes of relative distribution of given farm sizes. The first band is the probability that a farm size is of size as given by the farm_size_choices_m2 argumement. The function then writes a raster of farms, where each unique ID is a field owned by a different farmer. Farms only exist on cultivated land. In addition a numpy array of the farmer locations (center of the field) is outputted.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        farm_size_probabilities: map of indices of farm size</span>
+<span class="sd">        farm_size_choices_m2: size of </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="s1">&#39;sub_cell_area.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">src_cell_area</span><span class="p">:</span>
+        <span class="n">cell_area</span> <span class="o">=</span> <span class="n">src_cell_area</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">cell_area_profile</span> <span class="o">=</span> <span class="n">src_cell_area</span><span class="o">.</span><span class="n">profile</span>
+        <span class="n">gt</span> <span class="o">=</span> <span class="n">src_cell_area</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">to_gdal</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;landsurface&#39;</span><span class="p">,</span> <span class="s2">&quot;cultivated_land.tif&quot;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">src_cultivated_land</span><span class="p">:</span>
+        <span class="n">cultivated_land</span> <span class="o">=</span> <span class="n">src_cultivated_land</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">farms</span><span class="p">,</span> <span class="n">farmer_locs</span> <span class="o">=</span> <span class="n">create_farms</span><span class="p">(</span><span class="n">cultivated_land</span><span class="p">,</span> <span class="n">gt</span><span class="p">,</span> <span class="n">farm_size_probabilities</span><span class="p">,</span> <span class="n">farm_size_choices_m2</span><span class="p">,</span> <span class="n">cell_area</span><span class="p">)</span>
+    <span class="n">farms</span> <span class="o">=</span> <span class="n">farms</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="p">((</span><span class="n">farms</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">cultivated_land</span> <span class="o">==</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    
+    <span class="n">farmer_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;agents&#39;</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">farmer_folder</span><span class="p">,</span> <span class="s1">&#39;farmer_locations.npy&#39;</span><span class="p">),</span> <span class="n">farmer_locs</span><span class="p">)</span>
+
+    <span class="n">profile</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">cell_area_profile</span><span class="p">)</span>
+    <span class="n">profile</span><span class="p">[</span><span class="s1">&#39;dtype&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">farms</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">farmer_folder</span><span class="p">,</span> <span class="s1">&#39;farms.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">profile</span><span class="p">)</span> <span class="k">as</span> <span class="n">dst</span><span class="p">:</span>
+        <span class="n">dst</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">farms</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">FARM_SIZE_CHOICES_M2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="p">[</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mf">7.5</span><span class="p">],</span>
+        <span class="p">[</span><span class="mf">7.5</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">],</span>
+    <span class="p">])</span> <span class="o">*</span> <span class="mi">10_000</span>  <span class="c1"># Ha to m2</span>
+    
+    <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">INPUT</span><span class="p">,</span> <span class="s1">&#39;agents&#39;</span><span class="p">,</span> <span class="s1">&#39;farm_size&#39;</span><span class="p">,</span> <span class="s1">&#39;2010-11&#39;</span><span class="p">,</span> <span class="s1">&#39;farmsize.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">src_farm_size</span><span class="p">:</span>
+        <span class="n">FARM_SIZE_PROBABILITIES</span> <span class="o">=</span> <span class="n">src_farm_size</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+    <span class="n">create_farmers</span><span class="p">(</span><span class="n">FARM_SIZE_PROBABILITIES</span><span class="p">,</span> <span class="n">FARM_SIZE_CHOICES_M2</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; <a href="../../copyright.html">Copyright</a> 2022, IIASA and VU-IVM.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

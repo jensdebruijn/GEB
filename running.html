@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Running the model &mdash; GEB 0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="copyright" title="Copyright" href="copyright.html" />
+    <link rel="next" title="Hydrological response units" href="HRUs.html" />
+    <link rel="prev" title="Configuration" href="configuration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> GEB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="preprocessing/preprocessing.html">Preprocessing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Running the model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#run-py">run.py</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="HRUs.html">Farm-level HRUs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Agents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="agents/__init__.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/farmers.html">Farmers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/ngo.html">NGO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/government.html">Government</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cwatm_model.html">CWatM Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="report.html">Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="artists.html">Artists</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="authors_page.html">Authors</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GEB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Running the model</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/running.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="running-the-model">
+<h1>Running the model<a class="headerlink" href="#running-the-model" title="Permalink to this heading"></a></h1>
+<p>Finally, when all prequisites are installed, the data is preprocessed, and the model is configured, we can run the model!</p>
+<section id="run-py">
+<h2>run.py<a class="headerlink" href="#run-py" title="Permalink to this heading"></a></h2>
+<p>GEB aims to simulate both environment, for now the hydrological system, the behaviour of people and their interactions at large scale without sacrificing too much detail.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">usage: run.py [-h] [--headless] [--no-browser] [--port PORT] --scenario</span>
+<span class="go">              SCENARIO [--switch_crops] [--gpu_device GPU_DEVICE]</span>
+<span class="go">              [--profiling] [--GPU] [--config CONFIG]</span>
+</pre></div>
+</div>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-run.py-h">
+<span id="cmdoption-run-py-h"></span><span id="cmdoption-run.py-help"></span><span id="cmdoption-run-py-help"></span><span class="sig-name descname"><span class="pre">-h</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--help</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-run.py-h" title="Permalink to this definition"></a></dt>
+<dd><p>show this help message and exit</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-run.py-headless">
+<span id="cmdoption-run-py-headless"></span><span class="sig-name descname"><span class="pre">--headless</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-run.py-headless" title="Permalink to this definition"></a></dt>
+<dd><p>The model can be run with or without a visual interface. The visual interface is useful to display the results in real-time while the model is running and to better understand what is going on. You can simply start or stop the model with the click of a buttion, or advance the model by an <cite>x</cite> number of timesteps. However, the visual interface is much slower than running the model without it.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-run.py-no-browser">
+<span id="cmdoption-run-py-no-browser"></span><span class="sig-name descname"><span class="pre">--no-browser</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-run.py-no-browser" title="Permalink to this definition"></a></dt>
+<dd><p>Do not open browser when running the model. This option is, for example, useful when running the model on a server, and you would like to remotely access the model.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-run.py-port">
+<span id="cmdoption-run-py-port"></span><span class="sig-name descname"><span class="pre">--port</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;port&gt;</span></span><a class="headerlink" href="#cmdoption-run.py-port" title="Permalink to this definition"></a></dt>
+<dd><p>Port used for display environment (default: 8521)</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-run.py-scenario">
+<span id="cmdoption-run-py-scenario"></span><span class="sig-name descname"><span class="pre">--scenario</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;scenario&gt;</span></span><a class="headerlink" href="#cmdoption-run.py-scenario" title="Permalink to this definition"></a></dt>
+<dd><p>Here you can specify which scenario you would like to run. Currently 4 scenarios (base, self_investement, ngo_training, government_subsidies) are implemented, and model spinup are implemented.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-run.py-switch_crops">
+<span id="cmdoption-run-py-switch-crops"></span><span class="sig-name descname"><span class="pre">--switch_crops</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-run.py-switch_crops" title="Permalink to this definition"></a></dt>
+<dd><p>Whether agents should switch crops or not.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-run.py-gpu_device">
+<span id="cmdoption-run-py-gpu-device"></span><span class="sig-name descname"><span class="pre">--gpu_device</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;gpu_device&gt;</span></span><a class="headerlink" href="#cmdoption-run.py-gpu_device" title="Permalink to this definition"></a></dt>
+<dd><p>Specify the GPU to use (zero-indexed).</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-run.py-profiling">
+<span id="cmdoption-run-py-profiling"></span><span class="sig-name descname"><span class="pre">--profiling</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-run.py-profiling" title="Permalink to this definition"></a></dt>
+<dd><p>Run GEB with with profiling. If this option is used a file <cite>profiling_stats.cprof</cite> is saved in the working directory.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-run.py-GPU">
+<span id="cmdoption-run-py-gpu"></span><span class="sig-name descname"><span class="pre">--GPU</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-run.py-GPU" title="Permalink to this definition"></a></dt>
+<dd><p>Whether a GPU can be used to run the model. This requires CuPy to be installed.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-run.py-config">
+<span id="cmdoption-run-py-config"></span><span class="sig-name descname"><span class="pre">--config</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;config&gt;</span></span><a class="headerlink" href="#cmdoption-run.py-config" title="Permalink to this definition"></a></dt>
+<dd><p>Path of the model configuration file.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="configuration.html" class="btn btn-neutral float-left" title="Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="HRUs.html" class="btn btn-neutral float-right" title="Hydrological response units" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; <a href="copyright.html">Copyright</a> 2022, IIASA and VU-IVM.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

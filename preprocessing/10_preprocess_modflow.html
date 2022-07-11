@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10. Preprocess MODFLOW data &mdash; GEB 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" />
+    <link rel="next" title="11. Other data" href="11_other_data.html" />
+    <link rel="prev" title="9. Pick farmer crops" href="9_pick_farmer_crops.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> GEB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="preprocessing.html">Preprocessing</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="1_create_mask_and_hydro_maps.html">1. Create mask and hydro maps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="2_scale_cwatm.html">2. Scale CWatM input data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="3_scrape_command_areas.html">3. Scrape command areas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="4_create_lakes_and_reservoirs.html">4. Create land and reservoir map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="5_create_land_use_map.html">5. Create land use map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="6_get_farm_sizes.html">6. Create farm size map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="7_get_irrigation_source.html">7. Get irrigation sources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="8_create_farmers.html">8. Create farmers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="9_pick_farmer_crops.html">9. Pick farmer crops</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">10. Preprocess MODFLOW data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="11_other_data.html">11. Other data</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../running.html">Running the model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../HRUs.html">Farm-level HRUs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Agents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../agents/__init__.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/farmers.html">Farmers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/ngo.html">NGO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/government.html">Government</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cwatm_model.html">CWatM Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../report.html">Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../artists.html">Artists</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../authors_page.html">Authors</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GEB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="preprocessing.html">Preprocessing</a> &raquo;</li>
+      <li><span class="section-number">10. </span>Preprocess MODFLOW data</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/preprocessing/10_preprocess_modflow.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="preprocess-modflow-data">
+<h1><span class="section-number">10. </span>Preprocess MODFLOW data<a class="headerlink" href="#preprocess-modflow-data" title="Permalink to this heading"></a></h1>
+<p>CWatM works in a lon-lat grid, while MODFLOW works in a cartesian grid. Therefore a custom MODFLOW grid is created that encompasses the entirety of the CWatM mask. In addition, a mapping is created that maps the area of a given cell in the CWatM grid to a given MODFLOW cell. This mapping is then used in CWatM to convert flows between MODFLOW and CWatM. All required data for MODFLOW can also projected to the newly created MODFLOW grid using <code class="xref py py-meth docutils literal notranslate"><span class="pre">preprocessing.9_preprocess_modflow.ModflowPreprocess.project_input_map()</span></code>.</p>
+<span class="target" id="module-preprocessing.10_preprocess_modflow"></span><dl class="py class">
+<dt class="sig sig-object py" id="preprocessing.10_preprocess_modflow.ModflowPreprocess">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ModflowPreprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modflow_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cwatm_basin_mask_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modflow_epsg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/10_preprocess_modflow.html#ModflowPreprocess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.10_preprocess_modflow.ModflowPreprocess" title="Permalink to this definition"></a></dt>
+<dd><p>This class is used to do all modflow preprocessing. CWatM works in a lon-lat grid, while MODFLOW works in a cartesian grid. Therefore a custom MODFLOW grid is created that encompasses the entirety of the CWatM mask. In addition, a mapping is created that maps the area of a given cell in the CWatM grid to a given MODFLOW cell. All required data for MODFLOW is also projected to the newly created MODFLOW grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>modflow_path</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – path where processed data will be saved.</p></li>
+<li><p><strong>resolution</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – resolution in meters of MODFLOW data.</p></li>
+<li><p><strong>cwatm_basin_mask_fn</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – filepath of cwatm basin mask</p></li>
+<li><p><strong>modflow_epsg</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – MODFLOW EPSG</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="preprocessing.10_preprocess_modflow.ModflowPreprocess.create_indices">
+<span class="sig-name descname"><span class="pre">create_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/10_preprocess_modflow.html#ModflowPreprocess.create_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.10_preprocess_modflow.ModflowPreprocess.create_indices" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a mapping of cells between MODFLOW and CWatM, and saves them to npy-files. The mapping contains the x and y index of a CWatM and MODFLOW cell and the area size (m<sup>2</sup>) of their overlap. Cell combinations that are not in the indices do not overlap.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="preprocessing.10_preprocess_modflow.ModflowPreprocess.create_modflow_basin">
+<span class="sig-name descname"><span class="pre">create_modflow_basin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/10_preprocess_modflow.html#ModflowPreprocess.create_modflow_basin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.10_preprocess_modflow.ModflowPreprocess.create_modflow_basin" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a mask for the MODFLOW basin. All cells that have any area overlapping with any CWatM cell are considered to be part of the MODFLOW basin.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="preprocessing.10_preprocess_modflow.ModflowPreprocess.create_raster_shapefile">
+<span class="sig-name descname"><span class="pre">create_raster_shapefile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xsize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ysize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/10_preprocess_modflow.html#ModflowPreprocess.create_raster_shapefile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.10_preprocess_modflow.ModflowPreprocess.create_raster_shapefile" title="Permalink to this definition"></a></dt>
+<dd><p>First creates a raster for the given transform and size, where the top-left cell is 0, and counting up, rows first. Then the raster is transformed into a GeoDataFrame (shapefile), where the numbers of the cells are used as IDs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transform</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Affine</span></code>) – geotransformation of the raster</p></li>
+<li><p><strong>xsize</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – number of columns</p></li>
+<li><p><strong>ysize</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – number of rows</p></li>
+<li><p><strong>epsg</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – epsg of the raster</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gdf</strong> – GeoDataFrame with raster cells as geometries, each having a unique ID.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">GeoDataFrame</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="preprocessing.10_preprocess_modflow.ModflowPreprocess.get_modflow_transform_and_size">
+<span class="sig-name descname"><span class="pre">get_modflow_transform_and_size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/10_preprocess_modflow.html#ModflowPreprocess.get_modflow_transform_and_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.10_preprocess_modflow.ModflowPreprocess.get_modflow_transform_and_size" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate modflow geotransformation and size of grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>modflow_affine</strong> – affine transformation for new MODFLOW grid.</p></li>
+<li><p><strong>ncols</strong> – number of columns in the MODFLOW grid.</p></li>
+<li><p><strong>nrows</strong> – number of rows in the MODFLOW grid.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Affine</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="preprocessing.10_preprocess_modflow.ModflowPreprocess.project_input_map">
+<span class="sig-name descname"><span class="pre">project_input_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_map_fp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_map_fp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/preprocessing/10_preprocess_modflow.html#ModflowPreprocess.project_input_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#preprocessing.10_preprocess_modflow.ModflowPreprocess.project_input_map" title="Permalink to this definition"></a></dt>
+<dd><p>Projects input map to output map at resolution of the MODFLOW grid. Average resampling is used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_map_fp</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – filepath of the input map</p></li>
+<li><p><strong>output_map_fp</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – filepath of the output map</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="9_pick_farmer_crops.html" class="btn btn-neutral float-left" title="9. Pick farmer crops" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="11_other_data.html" class="btn btn-neutral float-right" title="11. Other data" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; <a href="../copyright.html">Copyright</a> 2022, IIASA and VU-IVM.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

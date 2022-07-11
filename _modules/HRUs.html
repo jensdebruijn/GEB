@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HRUs &mdash; GEB 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> GEB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../preprocessing/preprocessing.html">Preprocessing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../running.html">Running the model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../HRUs.html">Farm-level HRUs</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Agents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../agents/__init__.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/farmers.html">Farmers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/ngo.html">NGO</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/government.html">Government</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cwatm_model.html">CWatM Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../report.html">Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../artists.html">Artists</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../authors_page.html">Authors</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GEB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Module code</a> &raquo;</li>
+      <li>HRUs</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for HRUs</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">njit</span>
+<span class="kn">import</span> <span class="nn">rasterio</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">cupy</span> <span class="k">as</span> <span class="nn">cp</span>
+<span class="k">except</span> <span class="p">(</span><span class="ne">ModuleNotFoundError</span><span class="p">,</span> <span class="ne">ImportError</span><span class="p">):</span>
+    <span class="n">cp</span> <span class="o">=</span> <span class="n">np</span>
+
+
+<div class="viewcode-block" id="BaseVariables"><a class="viewcode-back" href="../HRUs.html#HRUs.BaseVariables">[docs]</a><span class="k">class</span> <span class="nc">BaseVariables</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;This class has some basic functions that can be used for variables regardless of scale.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="BaseVariables.plot"><a class="viewcode-back" href="../HRUs.html#HRUs.BaseVariables.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Create a simple plot for data.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            data: Array to plot.</span>
+<span class="sd">            ax: Optional matplotlib axis object. If given, data will be plotted on given axes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ax</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BaseVariables.MtoM3"><a class="viewcode-back" href="../HRUs.html#HRUs.BaseVariables.MtoM3">[docs]</a>    <span class="k">def</span> <span class="nf">MtoM3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Convert array from meters to cubic meters.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            array: Data in meters.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            array: Data in cubic meters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">array</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cellArea</span></div>
+
+<div class="viewcode-block" id="BaseVariables.M3toM"><a class="viewcode-back" href="../HRUs.html#HRUs.BaseVariables.M3toM">[docs]</a>    <span class="k">def</span> <span class="nf">M3toM</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Convert array from cubic meters to meters.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            array: Data in cubic meters.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            array: Data in meters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">array</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">cellArea</span></div>
+
+    <span class="k">def</span> <span class="nf">load_initial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">.0</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">load_initial</span><span class="p">:</span>
+            <span class="n">fp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">initial_conditions_folder</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.npy&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">gpu</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">default</span></div>
+<div class="viewcode-block" id="Grid"><a class="viewcode-back" href="../HRUs.html#HRUs.Grid">[docs]</a><span class="k">class</span> <span class="nc">Grid</span><span class="p">(</span><span class="n">BaseVariables</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This class is to store data in the &#39;normal&#39; grid cells. This class works with compressed and uncompressed arrays. On initialization of the class, the mask of the study area is read from disk. This is the shape of any uncompressed array. Many values in this array, however, fall outside the stuy area as they are masked. Therefore, the array can be compressed by saving only the non-masked values.</span>
+<span class="sd">    </span>
+<span class="sd">    On initialization, as well as geotransformation and cell size are set, and the cell area is read from disk.</span>
+
+<span class="sd">    Then, the mask is compressed by removing all masked cells, resulting in a compressed array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">mask_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;general&#39;</span><span class="p">][</span><span class="s1">&#39;input_folder&#39;</span><span class="p">],</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="s1">&#39;mask.tif&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mask_fn</span><span class="p">)</span> <span class="k">as</span> <span class="n">mask_src</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">mask_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gt</span> <span class="o">=</span> <span class="n">mask_src</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">to_gdal</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span> <span class="o">=</span> <span class="n">mask_src</span><span class="o">.</span><span class="n">bounds</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cell_size</span> <span class="o">=</span> <span class="n">mask_src</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">a</span>
+        <span class="n">cell_area_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;general&#39;</span><span class="p">][</span><span class="s1">&#39;input_folder&#39;</span><span class="p">],</span> <span class="s1">&#39;areamaps&#39;</span><span class="p">,</span> <span class="s1">&#39;cell_area.tif&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">cell_area_fn</span><span class="p">)</span> <span class="k">as</span> <span class="n">cell_area_src</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cell_area_uncompressed</span> <span class="o">=</span> <span class="n">cell_area_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_flat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compressed_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_flat</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_flat</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cellArea</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cell_area_uncompressed</span><span class="p">)</span>
+        <span class="n">BaseVariables</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Grid.full"><a class="viewcode-back" href="../HRUs.html#HRUs.Grid.full">[docs]</a>    <span class="k">def</span> <span class="nf">full</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return a full array with size of mask. Takes any other argument normally used in np.full.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            *args: Variable length argument list.</span>
+<span class="sd">            **kwargs: Arbitrary keyword arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Grid.full_compressed"><a class="viewcode-back" href="../HRUs.html#HRUs.Grid.full_compressed">[docs]</a>    <span class="k">def</span> <span class="nf">full_compressed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return a full array with size of compressed array. Takes any other argument normally used in np.full.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            *args: Variable length argument list.</span>
+<span class="sd">            **kwargs: Arbitrary keyword arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compressed_size</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Grid.compress"><a class="viewcode-back" href="../HRUs.html#HRUs.Grid.compress">[docs]</a>    <span class="k">def</span> <span class="nf">compress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Compress array.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            array: Uncompressed array.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            array: Compressed array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_flat</span> <span class="o">==</span> <span class="kc">False</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Grid.decompress"><a class="viewcode-back" href="../HRUs.html#HRUs.Grid.decompress">[docs]</a>    <span class="k">def</span> <span class="nf">decompress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">fillvalue</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ufunc</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Decompress array.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            array: Compressed array.</span>
+<span class="sd">            fillvalue: Value to use for masked values.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            array: Decompressed array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">fillvalue</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">):</span>
+                <span class="n">fillvalue</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fillvalue</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">outmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">fillvalue</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">array</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_flat</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">outmap</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_flat</span> <span class="o">==</span> <span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="n">array</span>
+        <span class="k">return</span> <span class="n">outmap</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Grid.plot"><a class="viewcode-back" href="../HRUs.html#HRUs.Grid.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Plot array.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            array: Array to plot.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Grid.plot_compressed"><a class="viewcode-back" href="../HRUs.html#HRUs.Grid.plot_compressed">[docs]</a>    <span class="k">def</span> <span class="nf">plot_compressed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">fillvalue</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ufunc</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plot compressed array.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            array: Compressed array to plot.</span>
+<span class="sd">            fillvalue: Value to use for masked values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="n">fillvalue</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">load_initial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">.0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">load_initial</span><span class="p">(</span><span class="s1">&#39;grid.&#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HRUs"><a class="viewcode-back" href="../HRUs.html#HRUs.HRUs">[docs]</a><span class="k">class</span> <span class="nc">HRUs</span><span class="p">(</span><span class="n">BaseVariables</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This class forms the basis for the HRUs. To create the `HRUs`, each individual field owned by a farmer becomes a `HRU` first. Then, in addition, each other land use type becomes a separate HRU. `HRUs` never cross cell boundaries. This means that farmers whose fields are dispersed across multiple cells are simulated by multiple `HRUs`. Here, we assume that each `HRU`, is relatively homogeneous as it each `HRU` is operated by 1) a single farmer, or by a single other (i.e., non-farm) land-use type and 2) never crosses the boundary a hydrological model cell.</span>
+
+<span class="sd">    On initalization, the mask of the study area for the cells are loaded first, and a mask on the maximum resolution of the HRUs is created. In this case, the maximum resolution of the HRUs is 20 times higher than the mask. Then the HRUs are actually created.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: Data class for model.</span>
+<span class="sd">        model: The GEB model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span> <span class="o">=</span> <span class="mi">20</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaling</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaling</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">cell_size</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">land_use_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">land_use_ratio</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">land_owners</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">HRU_to_grid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">var_to_HRU</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">var_to_HRU_uncompressed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">unmerged_HRU_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_HRUs</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">use_gpu</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">land_use_type</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">land_use_type</span><span class="p">)</span>
+        <span class="n">BaseVariables</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">compressed_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the compressed size of a full HRU array.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            compressed_size: Compressed size of HRU array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">land_use_type</span><span class="o">.</span><span class="n">size</span>
+
+<div class="viewcode-block" id="HRUs.create_HRUs_numba"><a class="viewcode-back" href="../HRUs.html#HRUs.HRUs.create_HRUs_numba">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@njit</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">create_HRUs_numba</span><span class="p">(</span><span class="n">farms</span><span class="p">,</span> <span class="n">land_use_classes</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">scaling</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Numba helper function to create HRUs.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            farms: Map of farms. Each unique integer is a unique farm. -1 is no farm.</span>
+<span class="sd">            land_use_classes: CWatM land use class map [0-5].</span>
+<span class="sd">            mask: Mask of the normal grid cells.</span>
+<span class="sd">            scaling: Scaling between mask and maximum resolution of HRUs.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            land_use_array: Land use of each HRU.</span>
+<span class="sd">            land_use_ratio: Relative size of HRU to grid.</span>
+<span class="sd">            land_use_owner: Owner of HRU.</span>
+<span class="sd">            HRU_to_grid: Maps HRUs to index of compressed cell index.</span>
+<span class="sd">            var_to_HRU: Array of size of the compressed grid cells. Each value maps to the index of the first unit of the next cell.</span>
+<span class="sd">            var_to_HRU_uncompressed: Array of size of the grid cells. Each value maps to the index of the first unit of the next cell.</span>
+<span class="sd">            unmerged_HRU_indices: The index of the HRU to the subcell.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">farms</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="n">scaling</span> <span class="o">*</span> <span class="n">scaling</span>
+        <span class="k">assert</span> <span class="n">farms</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">land_use_classes</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">ysize</span><span class="p">,</span> <span class="n">xsize</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">n_nonmasked_cells</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">var_to_HRU</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_nonmasked_cells</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">var_to_HRU_uncompressed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">HRU_to_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">farms</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">land_use_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">farms</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">land_use_size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">farms</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">land_use_owner</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">farms</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">unmerged_HRU_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">farms</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span>
+
+        <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">var_cell_count_compressed</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">var_cell_count_uncompressed</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ysize</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">xsize</span><span class="p">):</span>
+                <span class="n">is_masked</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">is_masked</span><span class="p">:</span>
+                    <span class="n">cell_farms</span> <span class="o">=</span> <span class="n">farms</span><span class="p">[</span><span class="n">y</span> <span class="o">*</span> <span class="n">scaling</span> <span class="p">:</span> <span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">x</span> <span class="o">*</span> <span class="n">scaling</span> <span class="p">:</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">scaling</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>  <span class="c1"># find farms in cell</span>
+                    <span class="n">cell_land_use_classes</span> <span class="o">=</span> <span class="n">land_use_classes</span><span class="p">[</span><span class="n">y</span> <span class="o">*</span> <span class="n">scaling</span> <span class="p">:</span> <span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">x</span> <span class="o">*</span> <span class="n">scaling</span> <span class="p">:</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">scaling</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>  <span class="c1"># get land use classes for cells</span>
+                    <span class="k">assert</span> <span class="p">((</span><span class="n">cell_land_use_classes</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">cell_land_use_classes</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">cell_land_use_classes</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">cell_land_use_classes</span> <span class="o">==</span> <span class="mi">5</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+                    <span class="n">sort_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">cell_farms</span><span class="p">)</span>
+                    <span class="n">cell_farms_sorted</span> <span class="o">=</span> <span class="n">cell_farms</span><span class="p">[</span><span class="n">sort_idx</span><span class="p">]</span>
+                    <span class="n">cell_land_use_classes_sorted</span> <span class="o">=</span> <span class="n">cell_land_use_classes</span><span class="p">[</span><span class="n">sort_idx</span><span class="p">]</span>
+
+                    <span class="n">prev_farm</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># farm is never -1</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cell_farms_sorted</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+                        <span class="n">farm</span> <span class="o">=</span> <span class="n">cell_farms_sorted</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                        <span class="n">land_use</span> <span class="o">=</span> <span class="n">cell_land_use_classes_sorted</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">farm</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>  <span class="c1"># if area is not a farm</span>
+                            <span class="k">continue</span>
+                        <span class="k">if</span> <span class="n">farm</span> <span class="o">!=</span> <span class="n">prev_farm</span><span class="p">:</span>
+                            <span class="k">assert</span> <span class="n">land_use_array</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+                            <span class="n">land_use_array</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">land_use</span>
+                            <span class="k">assert</span> <span class="n">land_use_size</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+                            <span class="n">land_use_size</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                            <span class="n">land_use_owner</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">farm</span>
+
+                            <span class="n">HRU_to_grid</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_cell_count_compressed</span>
+
+                            <span class="n">prev_farm</span> <span class="o">=</span> <span class="n">farm</span>
+                            <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">land_use_size</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                        <span class="n">unmerged_HRU_indices</span><span class="p">[</span><span class="n">sort_idx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">var_cell_count_compressed</span> <span class="o">*</span> <span class="p">(</span><span class="n">scaling</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)]</span> <span class="o">=</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">l</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="n">sort_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">cell_land_use_classes</span><span class="p">)</span>
+                    <span class="n">cell_farms_sorted</span> <span class="o">=</span> <span class="n">cell_farms</span><span class="p">[</span><span class="n">sort_idx</span><span class="p">]</span>
+                    <span class="n">cell_land_use_classes_sorted</span> <span class="o">=</span> <span class="n">cell_land_use_classes</span><span class="p">[</span><span class="n">sort_idx</span><span class="p">]</span>
+
+                    <span class="n">prev_land_use</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="k">assert</span> <span class="n">prev_land_use</span> <span class="o">!=</span> <span class="n">cell_land_use_classes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cell_farms_sorted</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+                        <span class="n">land_use</span> <span class="o">=</span> <span class="n">cell_land_use_classes_sorted</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                        <span class="n">farm</span> <span class="o">=</span> <span class="n">cell_farms_sorted</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">farm</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                            <span class="k">continue</span>
+                        <span class="k">if</span> <span class="n">land_use</span> <span class="o">!=</span> <span class="n">prev_land_use</span><span class="p">:</span>
+                            <span class="k">assert</span> <span class="n">land_use_array</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+                            <span class="n">land_use_array</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">land_use</span>
+                            <span class="k">assert</span> <span class="n">land_use_size</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+                            <span class="n">land_use_size</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                            <span class="n">prev_land_use</span> <span class="o">=</span> <span class="n">land_use</span>
+
+                            <span class="n">HRU_to_grid</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_cell_count_compressed</span>
+
+                            <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">land_use_size</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                        <span class="n">unmerged_HRU_indices</span><span class="p">[</span><span class="n">sort_idx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">var_cell_count_compressed</span> <span class="o">*</span> <span class="p">(</span><span class="n">scaling</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)]</span> <span class="o">=</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">l</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="n">var_to_HRU</span><span class="p">[</span><span class="n">var_cell_count_compressed</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span>
+                    <span class="n">var_cell_count_compressed</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">var_to_HRU_uncompressed</span><span class="p">[</span><span class="n">var_cell_count_uncompressed</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span>
+                <span class="n">var_cell_count_uncompressed</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="n">land_use_size</span> <span class="o">=</span> <span class="n">land_use_size</span><span class="p">[:</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">land_use_array</span> <span class="o">=</span> <span class="n">land_use_array</span><span class="p">[:</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">land_use_owner</span> <span class="o">=</span> <span class="n">land_use_owner</span><span class="p">[:</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">HRU_to_grid</span> <span class="o">=</span> <span class="n">HRU_to_grid</span><span class="p">[:</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">unmerged_HRU_indices</span> <span class="o">=</span> <span class="n">unmerged_HRU_indices</span><span class="p">[:</span><span class="n">var_cell_count_compressed</span> <span class="o">*</span> <span class="p">(</span><span class="n">scaling</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)]</span>
+        <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">land_use_size</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">==</span> <span class="n">n_nonmasked_cells</span> <span class="o">*</span> <span class="p">(</span><span class="n">scaling</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        
+        <span class="n">land_use_ratio</span> <span class="o">=</span> <span class="n">land_use_size</span> <span class="o">/</span> <span class="p">(</span><span class="n">scaling</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">land_use_array</span><span class="p">,</span> <span class="n">land_use_ratio</span><span class="p">,</span> <span class="n">land_use_owner</span><span class="p">,</span> <span class="n">HRU_to_grid</span><span class="p">,</span> <span class="n">var_to_HRU</span><span class="p">,</span> <span class="n">var_to_HRU_uncompressed</span><span class="p">,</span> <span class="n">unmerged_HRU_indices</span></div>
+
+<div class="viewcode-block" id="HRUs.create_HRUs"><a class="viewcode-back" href="../HRUs.html#HRUs.HRUs.create_HRUs">[docs]</a>    <span class="k">def</span> <span class="nf">create_HRUs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Function to create HRUs.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            land_use_array: Land use of each HRU.</span>
+<span class="sd">            land_use_ratio: Relative size of HRU to grid.</span>
+<span class="sd">            land_use_owner: Owner of HRU.</span>
+<span class="sd">            HRU_to_grid: Maps HRUs to index of compressed cell index.</span>
+<span class="sd">            var_to_HRU: Array of size of the compressed grid cells. Each value maps to the index of the first unit of the next cell.</span>
+<span class="sd">            var_to_HRU_uncompressed: Array of size of the grid cells. Each value maps to the index of the first unit of the next cell.</span>
+<span class="sd">            unmerged_HRU_indices: The index of the HRU to the subcell.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;general&#39;</span><span class="p">][</span><span class="s1">&#39;input_folder&#39;</span><span class="p">],</span> <span class="s1">&#39;agents&#39;</span><span class="p">,</span> <span class="s1">&#39;farms.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">farms_src</span><span class="p">:</span>
+            <span class="n">farms</span> <span class="o">=</span> <span class="n">farms_src</span><span class="o">.</span><span class="n">read</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;general&#39;</span><span class="p">][</span><span class="s1">&#39;input_folder&#39;</span><span class="p">],</span> <span class="s1">&#39;landsurface&#39;</span><span class="p">,</span> <span class="s1">&#39;land_use_classes.tif&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+            <span class="n">land_use_classes</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_HRUs_numba</span><span class="p">(</span><span class="n">farms</span><span class="p">,</span> <span class="n">land_use_classes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HRUs.zeros"><a class="viewcode-back" href="../HRUs.html#HRUs.HRUs.zeros">[docs]</a>    <span class="k">def</span> <span class="nf">zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return an array (CuPy or Numpy) of zeros with given size. Takes any other argument normally used in np.zeros.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            *args: Variable length argument list.</span>
+<span class="sd">            **kwargs: Arbitrary keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            array: Array with size of number of HRUs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">use_gpu</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>        </div>
+
+<div class="viewcode-block" id="HRUs.full_compressed"><a class="viewcode-back" href="../HRUs.html#HRUs.HRUs.full_compressed">[docs]</a>    <span class="k">def</span> <span class="nf">full_compressed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return a full array with size of number of HRUs. Takes any other argument normally used in np.full.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            *args: Variable length argument list.</span>
+<span class="sd">            **kwargs: Arbitrary keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            array: Array with size of number of HRUs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">use_gpu</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compressed_size</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compressed_size</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HRUs.decompress_HRU_numba"><a class="viewcode-back" href="../HRUs.html#HRUs.HRUs.decompress_HRU_numba">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">decompress_HRU_numba</span><span class="p">(</span><span class="n">HRU_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">outarray</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">unmerged_HRU_indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">scaling</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ysize</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">xsize</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Numba helper function to decompress HRU array.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            HRU_array: HRU_array.</span>
+<span class="sd">            unmerged_HRU_indices: The index of the HRU to the subcell.</span>
+<span class="sd">            scaling: The scaling used for map between cells and HRUs.</span>
+<span class="sd">            mask: Mask of study area.</span>
+<span class="sd">            nanvalue: Value to use for values outside the mask.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            outarray: Decompressed HRU_array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>  
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ysize</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">xsize</span><span class="p">):</span>
+                <span class="n">is_masked</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">is_masked</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">ys</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">scaling</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">xs</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">scaling</span><span class="p">):</span>
+                            <span class="n">outarray</span><span class="p">[</span><span class="n">y</span> <span class="o">*</span> <span class="n">scaling</span> <span class="o">+</span> <span class="n">ys</span><span class="p">,</span> <span class="n">x</span> <span class="o">*</span> <span class="n">scaling</span> <span class="o">+</span> <span class="n">xs</span><span class="p">]</span> <span class="o">=</span> <span class="n">HRU_array</span><span class="p">[</span><span class="n">unmerged_HRU_indices</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+                            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">outarray</span></div>
+
+<div class="viewcode-block" id="HRUs.decompress"><a class="viewcode-back" href="../HRUs.html#HRUs.HRUs.decompress">[docs]</a>    <span class="k">def</span> <span class="nf">decompress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">HRU_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Decompress HRU array.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            HRU_array: HRU_array.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            outarray: Decompressed HRU_array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>  
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">use_gpu</span><span class="p">:</span>
+            <span class="n">HRU_array</span> <span class="o">=</span> <span class="n">HRU_array</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">HRU_array</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+            <span class="n">nanvalue</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nanvalue</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">ysize</span><span class="p">,</span> <span class="n">xsize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">decompresssed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">ysize</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span><span class="p">,</span> <span class="n">xsize</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span><span class="p">),</span> <span class="n">nanvalue</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">HRU_array</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decompress_HRU_numba</span><span class="p">(</span>
+            <span class="n">HRU_array</span><span class="p">,</span>
+            <span class="n">outarray</span><span class="o">=</span><span class="n">decompresssed</span><span class="p">,</span>
+            <span class="n">unmerged_HRU_indices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unmerged_HRU_indices</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+            <span class="n">scaling</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scaling</span><span class="p">,</span>
+            <span class="n">ysize</span><span class="o">=</span><span class="n">ysize</span><span class="p">,</span>
+            <span class="n">xsize</span><span class="o">=</span><span class="n">xsize</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="HRUs.plot"><a class="viewcode-back" href="../HRUs.html#HRUs.HRUs.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">HRU_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Function to plot HRU data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            HRU_array: Data to plot. Size must be equal to number of HRUs.</span>
+<span class="sd">            ax: Optional matplotlib axis object. If given, data will be plotted on given axes.</span>
+<span class="sd">            show: Boolean whether to show the plot or not.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+        <span class="k">assert</span> <span class="n">HRU_array</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">compressed_size</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span><span class="n">HRU_array</span><span class="p">),</span> <span class="n">resample</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">load_initial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">.0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">load_initial</span><span class="p">(</span><span class="s1">&#39;HRU.&#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">use_gpu</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Modflow"><a class="viewcode-back" href="../HRUs.html#HRUs.Modflow">[docs]</a><span class="k">class</span> <span class="nc">Modflow</span><span class="p">(</span><span class="n">BaseVariables</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+
+        <span class="n">BaseVariables</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">load_initial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">.0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">load_initial</span><span class="p">(</span><span class="s1">&#39;modflow.&#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Data"><a class="viewcode-back" href="../HRUs.html#HRUs.Data">[docs]</a><span class="k">class</span> <span class="nc">Data</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;The base data class for the GEB model. This class contains the data for the normal grid, the HRUs, and has methods to convert between the grid and HRUs.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        model: The GEB model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span> <span class="o">=</span> <span class="n">Grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span> <span class="o">=</span> <span class="n">HRUs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">cellArea</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_HRU</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">cellArea</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modflow</span> <span class="o">=</span> <span class="n">Modflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Data.to_HRU_numba"><a class="viewcode-back" href="../HRUs.html#HRUs.Data.to_HRU_numba">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@njit</span>
+    <span class="k">def</span> <span class="nf">to_HRU_numba</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">var_to_HRU</span><span class="p">,</span> <span class="n">land_use_ratio</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Numba helper function to convert from grid to HRU.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            data: The grid data to be converted.</span>
+<span class="sd">            var_to_HRU: Array of size of the compressed grid cells. Each value maps to the index of the first unit of the next cell.</span>
+<span class="sd">            land_use_ratio: Relative size of HRU to grid.</span>
+<span class="sd">            fn: Name of function to apply to data. None if data should be directly inserted into HRUs - generally used when units are irrespective of area. &#39;mean&#39; if data should first be corrected relative to the land use ratios - generally used when units are relative to area.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ouput_data: Data converted to HRUs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">var_to_HRU</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">land_use_ratio</span><span class="o">.</span><span class="n">size</span>
+        <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">var_to_HRU</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">output_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">land_use_ratio</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">prev_index</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">var_to_HRU</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+                <span class="n">cell_index</span> <span class="o">=</span> <span class="n">var_to_HRU</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">output_data</span><span class="p">[</span><span class="n">prev_index</span><span class="p">:</span><span class="n">cell_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">prev_index</span> <span class="o">=</span> <span class="n">cell_index</span>
+        <span class="k">elif</span> <span class="n">fn</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">var_to_HRU</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+                <span class="n">cell_index</span> <span class="o">=</span> <span class="n">var_to_HRU</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">cell_sizes</span> <span class="o">=</span> <span class="n">land_use_ratio</span><span class="p">[</span><span class="n">prev_index</span><span class="p">:</span><span class="n">cell_index</span><span class="p">]</span>
+                <span class="n">output_data</span><span class="p">[</span><span class="n">prev_index</span><span class="p">:</span><span class="n">cell_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">cell_sizes</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">*</span> <span class="n">cell_sizes</span>
+                <span class="n">prev_index</span> <span class="o">=</span> <span class="n">cell_index</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+        <span class="k">return</span> <span class="n">output_data</span></div>
+
+<div class="viewcode-block" id="Data.to_HRU"><a class="viewcode-back" href="../HRUs.html#HRUs.Data.to_HRU">[docs]</a>    <span class="k">def</span> <span class="nf">to_HRU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">varname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Function to convert from grid to HRU.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            data: The grid data to be converted (if set, varname cannot be set).</span>
+<span class="sd">            varname: Name of variable to be converted. Must be present in grid class. (if set, data cannot be set).</span>
+<span class="sd">            fn: Name of function to apply to data. None if data should be directly inserted into HRUs - generally used when units are irrespective of area. &#39;mean&#39; if data should first be corrected relative to the land use ratios - generally used when units are relative to area.</span>
+<span class="sd">            delete: Whether to delete the data from the grid class. Can only be set if varname is given.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ouput_data: Data converted to HRUs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">bool</span><span class="p">(</span><span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">varname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">varname</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">varname</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>  <span class="c1"># check if data is simple float. Otherwise should be numpy array.</span>
+            <span class="n">outdata</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">outdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_HRU_numba</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">var_to_HRU</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">land_use_ratio</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">use_gpu</span><span class="p">:</span>
+                <span class="n">outdata</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">outdata</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">varname</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
+                <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">varname</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="p">,</span> <span class="n">varname</span><span class="p">,</span> <span class="n">outdata</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">outdata</span></div>
+
+<div class="viewcode-block" id="Data.to_grid_numba"><a class="viewcode-back" href="../HRUs.html#HRUs.Data.to_grid_numba">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@njit</span>
+    <span class="k">def</span> <span class="nf">to_grid_numba</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">var_to_HRU</span><span class="p">,</span> <span class="n">land_use_ratio</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Numba helper function to convert from HRU to grid.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            data: The grid data to be converted.</span>
+<span class="sd">            var_to_HRU: Array of size of the compressed grid cells. Each value maps to the index of the first unit of the next cell.</span>
+<span class="sd">            land_use_ratio: Relative size of HRU to grid.</span>
+<span class="sd">            fn: Name of function to apply to data. In most cases, several HRUs are combined into one grid unit, so a function must be applied. Choose from `mean`, `sum`, `nansum`, `max` and `min`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ouput_data: Data converted to HRUs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">output_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">var_to_HRU</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">var_to_HRU</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">land_use_ratio</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="n">prev_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">var_to_HRU</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+            <span class="n">cell_index</span> <span class="o">=</span> <span class="n">var_to_HRU</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">fn</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">prev_index</span><span class="p">:</span><span class="n">cell_index</span><span class="p">]</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="n">land_use_ratio</span><span class="p">[</span><span class="n">prev_index</span><span class="p">:</span><span class="n">cell_index</span><span class="p">]</span>
+                <span class="n">output_data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span> <span class="o">*</span> <span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">fn</span> <span class="o">==</span> <span class="s1">&#39;sum&#39;</span><span class="p">:</span>
+                <span class="n">output_data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">prev_index</span><span class="p">:</span><span class="n">cell_index</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">fn</span> <span class="o">==</span> <span class="s1">&#39;nansum&#39;</span><span class="p">:</span>
+                <span class="n">output_data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">prev_index</span><span class="p">:</span><span class="n">cell_index</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">fn</span> <span class="o">==</span> <span class="s1">&#39;max&#39;</span><span class="p">:</span>
+                <span class="n">output_data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">prev_index</span><span class="p">:</span> <span class="n">cell_index</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">fn</span> <span class="o">==</span> <span class="s1">&#39;min&#39;</span><span class="p">:</span>
+                <span class="n">output_data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">prev_index</span><span class="p">:</span> <span class="n">cell_index</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+            <span class="n">prev_index</span> <span class="o">=</span> <span class="n">cell_index</span>
+        <span class="k">return</span> <span class="n">output_data</span></div>
+
+<div class="viewcode-block" id="Data.to_grid"><a class="viewcode-back" href="../HRUs.html#HRUs.Data.to_grid">[docs]</a>    <span class="k">def</span> <span class="nf">to_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">HRU_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">varname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Function to convert from HRUs to grid.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            HRU_data: The HRU data to be converted (if set, varname cannot be set).</span>
+<span class="sd">            varname: Name of variable to be converted. Must be present in HRU class. (if set, data cannot be set).</span>
+<span class="sd">            fn: Name of function to apply to data. In most cases, several HRUs are combined into one grid unit, so a function must be applied. Choose from `mean`, `sum`, `nansum`, `max` and `min`.</span>
+<span class="sd">            delete: Whether to delete the data from the grid class. Can only be set if varname is given.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ouput_data: Data converted to grid units.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">bool</span><span class="p">(</span><span class="n">HRU_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">varname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">varname</span><span class="p">:</span>
+            <span class="n">HRU_data</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="p">,</span> <span class="n">varname</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">HRU_data</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">HRU_data</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>  <span class="c1"># check if data is simple float. Otherwise should be numpy array.</span>
+            <span class="n">outdata</span> <span class="o">=</span> <span class="n">HRU_data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">use_gpu</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">HRU_data</span><span class="p">,</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">HRU_data</span> <span class="o">=</span> <span class="n">HRU_data</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="n">outdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_grid_numba</span><span class="p">(</span><span class="n">HRU_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">var_to_HRU</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">land_use_ratio</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">varname</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
+                <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="p">,</span> <span class="n">varname</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="n">varname</span><span class="p">,</span> <span class="n">outdata</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">outdata</span></div>
+
+    <span class="k">def</span> <span class="nf">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">att</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">att</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="n">att</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">att</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">att</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">is_cupy</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">is_cupy</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">att</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">a</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">att</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+        <span class="k">if</span> <span class="n">att</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">att</span><span class="p">)</span> <span class="o">*</span> <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">is_cupy</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">a</span>
+
+    <span class="k">def</span> <span class="nf">split_HRU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="n">att</span> <span class="o">=</span> <span class="mf">.50</span>
+        <span class="n">subcell_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">unmerged_HRU_indices</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">split_loc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">subcell_indices</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="n">att</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">split_loc</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">split_loc</span> <span class="o">&lt;</span> <span class="n">subcell_indices</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">att</span> <span class="o">=</span> <span class="n">split_loc</span> <span class="o">/</span> <span class="n">subcell_indices</span><span class="o">.</span><span class="n">size</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">unmerged_HRU_indices</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">unmerged_HRU_indices</span> <span class="o">&gt;</span> <span class="n">index</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">unmerged_HRU_indices</span><span class="p">[</span><span class="n">subcell_indices</span><span class="p">[</span><span class="n">split_loc</span><span class="p">:]]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">HRU_to_grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">HRU_to_grid</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">var_to_HRU</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">HRU_to_grid</span><span class="p">[</span><span class="n">index</span><span class="p">]:]</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">land_owners</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">land_owners</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">farmers</span><span class="o">.</span><span class="n">update_field_indices</span><span class="p">()</span>
+
+        <span class="c1"># self.model.agents.farmers.field_indices[self.model.agents.farmers.field_indices &gt;= self.model.agents.farmers.field_indices[index]] += 1</span>
+        <span class="c1"># self.model.agents.farmers.field_indices = np.insert(self.model.agents.farmers.field_indices, index, self.model.agents.farmers.field_indices[index] - 1)</span>
+        <span class="c1"># np.array_equal(self.model.agents.farmers.field_indices, self.model.agents.farmers.create_field_indices(self.HRU.land_owners)[1])</span>
+                
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">farmers</span><span class="o">.</span><span class="n">field_indices_per_farmer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">farmers</span><span class="o">.</span><span class="n">field_indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">farmers</span><span class="o">.</span><span class="n">field_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">farmers</span><span class="o">.</span><span class="n">field_indices</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">land_use_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">land_use_type</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">land_use_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">land_use_ratio</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">att</span><span class="o">=</span><span class="n">att</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">cellArea</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">cellArea</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">att</span><span class="o">=</span><span class="n">att</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">crop_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">crop_map</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">crop_age_days_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">crop_age_days_map</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">crop_harvest_age_days_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">crop_harvest_age_days_map</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">next_plant_day</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">next_plant_day</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">n_multicrop_periods</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">n_multicrop_periods</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">next_multicrop_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">next_multicrop_index</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">Precipitation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">Precipitation</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">SnowCoverS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">SnowCoverS</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">DeltaTSnow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">DeltaTSnow</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">FrostIndex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">FrostIndex</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">percolationImp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">percolationImp</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">cropGroupNumber</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">cropGroupNumber</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">capriseindex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">capriseindex</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">actBareSoilEvap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">actBareSoilEvap</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">actTransTotal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">actTransTotal</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">KSat1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">KSat1</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">KSat2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">KSat2</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">KSat3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">KSat3</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">lambda1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">lambda1</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">lambda2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">lambda2</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">lambda3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">lambda3</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wwp1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wwp1</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wwp2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wwp2</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wwp3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wwp3</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">ws1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">ws1</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">ws2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">ws2</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">ws3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">ws3</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wres1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wres1</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wres2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wres2</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wres3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wres3</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wfc1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wfc1</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wfc2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wfc2</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wfc3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">wfc3</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">kunSatFC12</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">kunSatFC12</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">kunSatFC23</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">kunSatFC23</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">adjRoot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">adjRoot</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">arnoBeta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">arnoBeta</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">w1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">w1</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">w2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">w2</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">w3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">w3</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">topwater</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">topwater</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">totAvlWater</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">totAvlWater</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">minInterceptCap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">minInterceptCap</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">interceptStor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">interceptStor</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">potential_transpiration_crop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">potential_transpiration_crop</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">actual_transpiration_crop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_HRU_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">HRU</span><span class="o">.</span><span class="n">actual_transpiration_crop</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; <a href="../copyright.html">Copyright</a> 2022, IIASA and VU-IVM.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
